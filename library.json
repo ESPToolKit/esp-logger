@@ -1,0 +1,32 @@
+{
+  "name": "ESPLogger",
+  "version": "1.0.0",
+  "description": "A Lightweight logger implementation for ESP32",
+  "keywords": [
+    "esp32",
+    "arduino",
+    "json",
+    "logger",
+    "http"
+  ],
+  "homepage": "https://github.com/ESPToolKit/esp-logger",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ESPToolKit/esp-logger.git"
+  },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "zekageri"
+    }
+  ],
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "dependencies": [],
+  "headers": ["ESPLogger.h"],
+  "build": {
+    "flags": [
+      "-std=gnu++17"
+    ]
+  }
+}
