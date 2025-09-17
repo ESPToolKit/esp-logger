@@ -1,0 +1,8 @@
+/home/zekageri/projects/ESPToolKit/libs/esp-logger/build/CMakeFiles/test.dir
+/home/zekageri/projects/ESPToolKit/libs/esp-logger/build/CMakeFiles/edit_cache.dir
+/home/zekageri/projects/ESPToolKit/libs/esp-logger/build/CMakeFiles/rebuild_cache.dir
+/home/zekageri/projects/ESPToolKit/libs/esp-logger/build/test/CMakeFiles/esp_logger_core.dir
+/home/zekageri/projects/ESPToolKit/libs/esp-logger/build/test/CMakeFiles/logger_tests.dir
+/home/zekageri/projects/ESPToolKit/libs/esp-logger/build/test/CMakeFiles/test.dir
+/home/zekageri/projects/ESPToolKit/libs/esp-logger/build/test/CMakeFiles/edit_cache.dir
+/home/zekageri/projects/ESPToolKit/libs/esp-logger/build/test/CMakeFiles/rebuild_cache.dir
