@@ -29,7 +29,7 @@ class Logger {
     Logger() = default;
     ~Logger();
 
-    bool init(const LoggerConfig& config);
+    bool init(const LoggerConfig& config = LoggerConfig{});
     void deinit();
     bool isInitialized() const { return _initialized; }
 

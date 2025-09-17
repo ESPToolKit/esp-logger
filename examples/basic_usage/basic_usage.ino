@@ -12,6 +12,7 @@ void logSyncCallback(const std::vector<Log>& logs) {
 void setup() {
     Serial.begin(115200);
 
+    // Quick start: omit the config entirely and call logger.init() to use all defaults.
     LoggerConfig config;
     config.syncIntervalMS = 3000;      // sync every 3 seconds
     config.maxLogInRam = 25;           // keep a small buffer in RAM

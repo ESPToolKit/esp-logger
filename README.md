@@ -24,7 +24,7 @@ so you can integrate storage or telemetry pipelines without blocking application
 #include <ESPLogger.h>
 ```
 
-3. Configure and initialise the logger:
+3. Initialise the logger (optionally overriding the defaults):
 
 ```cpp
 #include <ESPLogger.h>
@@ -32,6 +32,7 @@ so you can integrate storage or telemetry pipelines without blocking application
 void setup() {
     Serial.begin(115200);
 
+    // Quick start: call logger.init(); with no arguments to use the default config.
     LoggerConfig config;
     config.syncIntervalMS = 5000;   // flush to callback every 5 seconds
     config.maxLogInRam = 100;       // keep 100 entries before forcing a flush

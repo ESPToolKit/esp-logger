@@ -9,11 +9,6 @@
 #include <string>
 #include <vector>
 
-using esp_logger::Log;
-using esp_logger::LogLevel;
-using esp_logger::Logger;
-using esp_logger::LoggerConfig;
-
 namespace {
 
 [[noreturn]] void fail(const std::string &message) {
@@ -31,6 +26,24 @@ void expect_true(bool condition, const std::string &message) {
     if (!condition) {
         fail(message);
     }
+}
+
+void test_init_with_default_config() {
+    Logger logger;
+
+    if (!logger.init()) {
+        fail("Logger failed to initialize with default config");
+    }
+
+    expect_true(logger.isInitialized(), "Logger should be initialized with default config");
+    expect_equal(logger.logLevel(), LogLevel::Debug, "Default console log level should be Debug");
+
+    const auto current = logger.currentConfig();
+    expect_true(current.enableSyncTask, "Default config should enable the sync task");
+    expect_equal(current.maxLogInRam, static_cast<size_t>(100), "Default maxLogInRam should be 100");
+
+    logger.deinit();
+    expect_true(!logger.isInitialized(), "Logger should be deinitialized after default init test");
 }
 
 void test_init_applies_normalized_config() {
@@ -142,6 +155,7 @@ void test_set_log_level_updates_config() {
 
 int main() {
     try {
+        test_init_with_default_config();
         test_init_applies_normalized_config();
         test_stores_logs_up_to_configured_capacity();
         test_sync_callback_receives_buffered_logs();

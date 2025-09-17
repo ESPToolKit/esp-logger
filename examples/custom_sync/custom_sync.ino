@@ -20,6 +20,7 @@ void persistLogs(const std::vector<Log>& logs) {
 void setup() {
     Serial.begin(115200);
 
+    // Defaults are fine for many cases; call logger.init() without a config to use them.
     LoggerConfig config;
     config.enableSyncTask = false;    // we will drive sync manually
     config.maxLogInRam = 50;
