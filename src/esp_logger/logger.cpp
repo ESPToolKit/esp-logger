@@ -89,6 +89,7 @@ bool Logger::init(const LoggerConfig &config) {
 	const bool shouldCreateTask = _config.enableSyncTask && _config.syncIntervalMS > 0;
 
 	if (shouldCreateTask) {
+		_running = true;
 		BaseType_t result = xTaskCreatePinnedToCore(
 			syncTaskThunk,
 			kSyncTaskName,
@@ -99,6 +100,7 @@ bool Logger::init(const LoggerConfig &config) {
 			_config.coreId);
 
 		if (result != pdPASS) {
+			_running = false;
 			LockGuard guard(_mutex);
 			_logs.clear();
 			_config = LoggerConfig{};
@@ -106,11 +108,9 @@ bool Logger::init(const LoggerConfig &config) {
 			vSemaphoreDelete(_mutex);
 			_mutex = nullptr;
 			_syncTask = nullptr;
-			_running = false;
 			return false;
 		}
 
-		_running = true;
 	}
 
 	_initialized = true;
