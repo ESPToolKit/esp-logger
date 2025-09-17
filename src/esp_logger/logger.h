@@ -14,8 +14,6 @@
 
 #include "esp_logger/logger_config.h"
 
-namespace esp_logger {
-
 struct Log {
     LogLevel level;
     std::string tag;
@@ -68,6 +66,4 @@ class Logger {
     LogLevel _logLevel = LogLevel::Debug;
 };
 
-}  // namespace esp_logger
-
-inline esp_logger::Logger logger;
+inline Logger logger;

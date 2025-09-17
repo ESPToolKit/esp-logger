@@ -10,9 +10,6 @@
 #include <utility>
 #include <vector>
 
-namespace esp_logger {
-namespace {
-
 class LockGuard {
   public:
 	explicit LockGuard(SemaphoreHandle_t handle) : _handle(handle) {
@@ -61,7 +58,6 @@ void logWithEsp(LogLevel level,
 	}
 }
 
-} // namespace
 
 Logger::~Logger() {
 	deinit();
@@ -334,5 +330,3 @@ void Logger::syncTaskLoop() {
 		performSync();
 	}
 }
-
-} // namespace esp_logger

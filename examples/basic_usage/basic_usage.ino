@@ -1,8 +1,6 @@
 #include <Arduino.h>
 #include <ESPLogger.h>
 
-using namespace esp_logger;
-
 // Optional: store a snapshot of logs the last time we synced.
 static std::vector<Log> lastSyncedLogs;
 

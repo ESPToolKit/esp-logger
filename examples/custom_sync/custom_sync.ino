@@ -1,8 +1,6 @@
 #include <Arduino.h>
 #include <ESPLogger.h>
 
-using namespace esp_logger;
-
 namespace {
 constexpr uint32_t kManualSyncIntervalMS = 5000;
 uint32_t lastSyncMs = 0;

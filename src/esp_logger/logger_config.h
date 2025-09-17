@@ -5,8 +5,6 @@
 
 #include <freertos/FreeRTOS.h>
 
-namespace esp_logger {
-
 enum class LogLevel {
     Debug = 0,
     Info,
@@ -25,5 +23,3 @@ struct LoggerConfig {
     LogLevel consoleLogLevel = LogLevel::Debug;
     bool enableSyncTask = true;
 };
-
-}  // namespace esp_logger

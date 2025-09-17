@@ -29,8 +29,6 @@ so you can integrate storage or telemetry pipelines without blocking application
 ```cpp
 #include <ESPLogger.h>
 
-using namespace esp_logger;
-
 void setup() {
     Serial.begin(115200);
 
