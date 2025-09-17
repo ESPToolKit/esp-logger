@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/logger_tests.dir/logger_tests.cpp.o CMakeFiles/logger_tests.dir/logger_test_stubs.cpp.o -o logger_tests  libesp_logger_core.a 

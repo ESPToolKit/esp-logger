@@ -1,2 +1,0 @@
-/usr/bin/ar qc libesp_logger_core.a CMakeFiles/esp_logger_core.dir/__/src/esp_logger/logger.cpp.o
-/usr/bin/ranlib libesp_logger_core.a
