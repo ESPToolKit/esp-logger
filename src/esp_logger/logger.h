@@ -65,5 +65,3 @@ class Logger {
     SyncCallback _syncCallback;
     LogLevel _logLevel = LogLevel::Debug;
 };
-
-inline Logger logger;
