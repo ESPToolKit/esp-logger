@@ -151,6 +151,41 @@ void test_set_log_level_updates_config() {
     logger.deinit();
 }
 
+void test_multiple_logger_instances_operate_independently() {
+    test_support::resetMillis();
+
+    Logger first;
+    Logger second;
+
+    LoggerConfig configA;
+    configA.enableSyncTask = false;
+    configA.maxLogInRam = 3;
+    configA.consoleLogLevel = LogLevel::Debug;
+
+    LoggerConfig configB = configA;
+    configB.maxLogInRam = 5;
+
+    if (!first.init(configA) || !second.init(configB)) {
+        fail("Failed to initialize independent loggers");
+    }
+
+    first.info("FIRST", "one");
+    second.warn("SECOND", "alpha");
+    first.error("FIRST", "two");
+    second.debug("SECOND", "beta");
+
+    const auto firstLogs = first.getAllLogs();
+    const auto secondLogs = second.getAllLogs();
+
+    expect_equal(firstLogs.size(), static_cast<size_t>(2), "First logger should keep its own entries");
+    expect_equal(firstLogs.front().tag, std::string("FIRST"), "First logger tag mismatch");
+    expect_equal(secondLogs.size(), static_cast<size_t>(2), "Second logger should keep its own entries");
+    expect_equal(secondLogs.front().tag, std::string("SECOND"), "Second logger tag mismatch");
+
+    first.deinit();
+    second.deinit();
+}
+
 }  // namespace
 
 int main() {
@@ -160,6 +195,7 @@ int main() {
         test_stores_logs_up_to_configured_capacity();
         test_sync_callback_receives_buffered_logs();
         test_set_log_level_updates_config();
+        test_multiple_logger_instances_operate_independently();
     } catch (const std::exception &ex) {
         std::cerr << "Test failure: " << ex.what() << '\n';
         return 1;

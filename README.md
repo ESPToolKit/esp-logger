@@ -18,16 +18,20 @@ so you can integrate storage or telemetry pipelines without blocking application
 
 ## Getting Started
 1. Install the library (drop it into `lib/` for PlatformIO or `libraries/` for the Arduino IDE).
-2. Include the umbrella header:
+2. Include the umbrella header and create your own `Logger` instance (one or many, depending on your needs):
 
 ```cpp
 #include <ESPLogger.h>
+
+Logger logger;  // or `static Logger logger;` if you keep it at file scope
 ```
 
 3. Initialise the logger (optionally overriding the defaults):
 
 ```cpp
 #include <ESPLogger.h>
+
+static Logger logger;
 
 void setup() {
     Serial.begin(115200);
@@ -52,6 +56,34 @@ void loop() {
     delay(1000);
 }
 ```
+
+Each project chooses how to scope the logger instance. Globals (as shown above) keep the object alive across `setup()`/`loop()`, but you can also place instances inside classes or pass them by reference to encapsulate specific subsystems.
+
+For example, wire the logger into your own class by storing a reference or pointer:
+
+```cpp
+class SensorModule {
+  public:
+    explicit SensorModule(Logger& logger) : _logger(logger) {}
+
+    void update() {
+        const float reading = analogRead(A0) / 1023.0f;
+        _logger.info("SENSOR", "Latest reading: %.2f", reading);
+    }
+
+  private:
+    Logger& _logger;
+};
+
+static Logger logger;
+static SensorModule sensor(logger);
+
+void loop() {
+    sensor.update();
+}
+```
+
+Nothing in the library assumes a singleton, so feel free to instantiate multiple loggers when it makes sense.
 
 ## Configuration Reference
 `LoggerConfig` exposes the following knobs:

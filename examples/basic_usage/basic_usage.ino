@@ -1,6 +1,31 @@
 #include <Arduino.h>
 #include <ESPLogger.h>
 
+// Create a dedicated logger instance for this sketch and any helper classes.
+static Logger logger;
+
+class HeartbeatReporter {
+  public:
+    explicit HeartbeatReporter(Logger& logger) : _logger(logger) {}
+
+    void log(uint32_t counter) {
+        _logger.info("APP", "Heartbeat %lu", static_cast<unsigned long>(counter));
+
+        if (counter % 5 == 0) {
+            _logger.warn("APP", "Simulated warning at count %lu", static_cast<unsigned long>(counter));
+        }
+
+        if (counter % 9 == 0) {
+            _logger.error("APP", "Simulated error at count %lu", static_cast<unsigned long>(counter));
+        }
+    }
+
+  private:
+    Logger& _logger;
+};
+
+static HeartbeatReporter heartbeat(logger);
+
 // Optional: store a snapshot of logs the last time we synced.
 static std::vector<Log> lastSyncedLogs;
 
@@ -34,15 +59,7 @@ void loop() {
     logger.debug("LOOP", "This debug message only shows when consoleLogLevel <= Debug (%lu)",
                  static_cast<unsigned long>(counter));
 
-    logger.info("APP", "Heartbeat %lu", static_cast<unsigned long>(counter));
-
-    if (counter % 5 == 0) {
-        logger.warn("APP", "Simulated warning at count %lu", static_cast<unsigned long>(counter));
-    }
-
-    if (counter % 9 == 0) {
-        logger.error("APP", "Simulated error at count %lu", static_cast<unsigned long>(counter));
-    }
+    heartbeat.log(counter);
 
     counter++;
     delay(1000);

@@ -3,8 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-
-- No changes yet.
+### Changed
+- Clarified that the library no longer ships a global `logger` instance; documentation and examples now create their own `Logger` objects so multiple instances can coexist safely.
 
 ## [1.0.2] - 2025-09-22
 ### Added

@@ -1,6 +1,24 @@
 #include <Arduino.h>
 #include <ESPLogger.h>
 
+// Own a logger instance so helper classes can log without relying on globals.
+static Logger logger;
+
+class SensorSampler {
+  public:
+    explicit SensorSampler(Logger& logger) : _logger(logger) {}
+
+    void logReading() {
+        const float reading = analogRead(A0) / 1023.0f;
+        _logger.debug("DATA", "Sensor reading: %0.2f", reading);
+    }
+
+  private:
+    Logger& _logger;
+};
+
+static SensorSampler sampler(logger);
+
 namespace {
 constexpr uint32_t kManualSyncIntervalMS = 5000;
 uint32_t lastSyncMs = 0;
@@ -37,7 +55,7 @@ void setup() {
 }
 
 void loop() {
-    logger.debug("DATA", "Sensor reading: %0.2f", analogRead(A0) / 1023.0f);
+    sampler.logReading();
 
     if (millis() - lastSyncMs >= kManualSyncIntervalMS) {
         lastSyncMs = millis();
