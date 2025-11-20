@@ -13,6 +13,7 @@ A lightweight, configurable logging utility for ESP32 projects. ESPLogger combin
 - Optional background sync task plus manual `sync()` for deterministic flushes.
 - `onSync` callback hands over a vector of structured `Log` entries for custom persistence.
 - Helpers to fetch every buffered log or just the most recent entries whenever you need diagnostics.
+- Filter helpers to count or retrieve buffered logs at a specific level without flushing them.
 - Console output automatically routed through the ESP-IDF `ESP_LOGx` macros.
 
 ## Examples
@@ -81,6 +82,7 @@ Example sketches:
 - `void onSync(ESPLogger::SyncCallback cb)` – receive batches of `Log` entries whenever the buffer flushes.
 - `void sync()` – force a flush (useful when the background task is disabled).
 - `std::vector<Log> getAllLogs()` / `std::vector<Log> getLastLogs(size_t count)` – snapshot buffered entries.
+- `int getLogCount(LogLevel level)` / `std::vector<Log> getLogs(LogLevel level)` – inspect buffered logs at a particular level.
 - `LoggerConfig currentConfig() const` – inspect the live settings.
 
 `LoggerConfig` knobs:

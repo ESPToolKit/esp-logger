@@ -186,6 +186,37 @@ void test_multiple_logger_instances_operate_independently() {
     second.deinit();
 }
 
+void test_get_logs_by_level() {
+    test_support::resetMillis();
+
+    ESPLogger logger;
+    LoggerConfig config;
+    config.enableSyncTask = false;
+    config.maxLogInRam = 5;
+    config.consoleLogLevel = LogLevel::Debug;
+
+    if (!logger.init(config)) {
+        fail("Failed to initialize logger");
+    }
+
+    logger.debug("TAG", "message a");
+    logger.info("TAG", "message b");
+    logger.warn("TAG", "message c");
+    logger.info("TAG", "message d");
+
+    expect_equal(logger.getLogCount(LogLevel::Info), 2, "getLogCount should count matching levels only");
+    expect_equal(logger.getLogCount(LogLevel::Error), 0, "getLogCount should return zero when no logs match");
+
+    const auto infoLogs = logger.getLogs(LogLevel::Info);
+    expect_equal(infoLogs.size(), static_cast<size_t>(2), "getLogs should filter by level");
+    expect_equal(infoLogs.front().message, std::string("message b"), "First filtered log mismatch");
+    expect_equal(infoLogs.back().message, std::string("message d"), "Second filtered log mismatch");
+
+    expect_equal(logger.getAllLogs().size(), static_cast<size_t>(4), "getLogs should not mutate stored entries");
+
+    logger.deinit();
+}
+
 }  // namespace
 
 int main() {
@@ -196,6 +227,7 @@ int main() {
         test_sync_callback_receives_buffered_logs();
         test_set_log_level_updates_config();
         test_multiple_logger_instances_operate_independently();
+        test_get_logs_by_level();
     } catch (const std::exception &ex) {
         std::cerr << "Test failure: " << ex.what() << '\n';
         return 1;

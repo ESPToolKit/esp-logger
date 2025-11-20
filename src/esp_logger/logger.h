@@ -43,6 +43,8 @@ class ESPLogger {
     void error(const char* tag, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
 
     std::vector<Log> getAllLogs();
+    int getLogCount(LogLevel level);
+    std::vector<Log> getLogs(LogLevel level);
     std::vector<Log> getLastLogs(size_t count);
 
     LoggerConfig currentConfig() const;
