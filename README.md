@@ -88,12 +88,14 @@ Example sketches:
 | Field | Default | Description |
 | --- | --- | --- |
 | `syncIntervalMS` | `5000` | Period between automatic flushes (ignored when `enableSyncTask` is `false`). |
-| `stackSize` | `4096` | Stack size (words) for the sync task. |
+| `stackSize` | `16384` | Stack size for the sync task. |
 | `coreId` | `LoggerConfig::any` | CPU core affinity for the sync task. |
 | `maxLogInRam` | `100` | Maximum entries retained in RAM; oldest entries are discarded when the buffer is full. |
-| `taskPriority` | `1` | FreeRTOS priority for the sync task. |
+| `priority` | `1` | FreeRTOS priority for the sync task. |
 | `consoleLogLevel` | `LogLevel::Debug` | Minimum level printed to the console. |
 | `enableSyncTask` | `true` | Disable to opt out of the background task and call `logger.sync()` manually. |
+
+Stack sizes are expressed in bytes.
 
 ## Restrictions
 - Built for ESP32 + FreeRTOS (Arduino or ESP-IDF) with C++17 enabled.

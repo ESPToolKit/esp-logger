@@ -16,10 +16,10 @@ struct LoggerConfig {
     static constexpr BaseType_t any = tskNO_AFFINITY;  // Use any available core
 
     uint32_t syncIntervalMS = 5000;
-    uint32_t stackSize = 4096;
+    uint32_t stackSize = 4096 * sizeof(StackType_t);
     BaseType_t coreId = any;
     size_t maxLogInRam = 100;
-    UBaseType_t taskPriority = 1;
+    UBaseType_t priority = 1;
     LogLevel consoleLogLevel = LogLevel::Debug;
     bool enableSyncTask = true;
 };

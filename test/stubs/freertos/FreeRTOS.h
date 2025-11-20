@@ -11,6 +11,7 @@ typedef unsigned int UBaseType_t;
 typedef uint32_t TickType_t;
 typedef void * TaskHandle_t;
 typedef void * SemaphoreHandle_t;
+typedef uint32_t StackType_t;
 
 #define pdPASS 1
 #define pdFAIL 0

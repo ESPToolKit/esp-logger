@@ -95,7 +95,7 @@ bool Logger::init(const LoggerConfig &config) {
 			kSyncTaskName,
 			_config.stackSize,
 			this,
-			_config.taskPriority,
+			_config.priority,
 			&_syncTask,
 			_config.coreId);
 
