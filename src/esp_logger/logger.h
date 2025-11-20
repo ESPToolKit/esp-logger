@@ -45,6 +45,8 @@ class ESPLogger {
     std::vector<Log> getAllLogs();
     int getLogCount(LogLevel level);
     std::vector<Log> getLogs(LogLevel level);
+    static int getLogCount(const std::vector<Log>& logs, LogLevel level);
+    static std::vector<Log> getLogs(const std::vector<Log>& logs, LogLevel level);
     std::vector<Log> getLastLogs(size_t count);
 
     LoggerConfig currentConfig() const;

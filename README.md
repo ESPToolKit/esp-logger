@@ -14,6 +14,7 @@ A lightweight, configurable logging utility for ESP32 projects. ESPLogger combin
 - `onSync` callback hands over a vector of structured `Log` entries for custom persistence.
 - Helpers to fetch every buffered log or just the most recent entries whenever you need diagnostics.
 - Filter helpers to count or retrieve buffered logs at a specific level without flushing them.
+- Static helpers to count or filter the snapshot passed into `onSync` without relying on internal buffers.
 - Console output automatically routed through the ESP-IDF `ESP_LOGx` macros.
 
 ## Examples
@@ -73,6 +74,7 @@ Example sketches:
 - Keep `ESPLogger` instances alive for as long as their sync task may run; destroying the object stops the task.
 - When `enableSyncTask` is `false`, remember to call `logger.sync()` yourself or logs will stay buffered forever.
 - `setLogLevel` only affects console output; all logs remain available inside the RAM buffer until purged.
+- Inside `onSync`, the internal buffer has already been cleared—use the static helper overloads that take the `logs` snapshot to count or filter entries.
 - The `onSync` callback runs inside the sync task context—avoid blocking operations.
 
 ## API Reference
@@ -83,6 +85,7 @@ Example sketches:
 - `void sync()` – force a flush (useful when the background task is disabled).
 - `std::vector<Log> getAllLogs()` / `std::vector<Log> getLastLogs(size_t count)` – snapshot buffered entries.
 - `int getLogCount(LogLevel level)` / `std::vector<Log> getLogs(LogLevel level)` – inspect buffered logs at a particular level.
+- `static int getLogCount(const std::vector<Log>& logs, LogLevel level)` / `static std::vector<Log> getLogs(const std::vector<Log>& logs, LogLevel level)` – filter the snapshot passed to `onSync`.
 - `LoggerConfig currentConfig() const` – inspect the live settings.
 
 `LoggerConfig` knobs:

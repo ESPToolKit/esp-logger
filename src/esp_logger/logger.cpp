@@ -206,6 +206,21 @@ std::vector<Log> ESPLogger::getLogs(LogLevel level) {
 	return matches;
 }
 
+int ESPLogger::getLogCount(const std::vector<Log> &logs, LogLevel level) {
+	return static_cast<int>(std::count_if(logs.begin(), logs.end(), [level](const Log &entry) {
+		return entry.level == level;
+	}));
+}
+
+std::vector<Log> ESPLogger::getLogs(const std::vector<Log> &logs, LogLevel level) {
+	std::vector<Log> matches;
+	matches.reserve(logs.size());
+	std::copy_if(logs.begin(), logs.end(), std::back_inserter(matches), [level](const Log &entry) {
+		return entry.level == level;
+	});
+	return matches;
+}
+
 std::vector<Log> ESPLogger::getLastLogs(size_t count) {
 	LockGuard guard(_mutex);
 	if (count == 0 || _logs.empty()) {

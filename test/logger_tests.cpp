@@ -217,6 +217,22 @@ void test_get_logs_by_level() {
     logger.deinit();
 }
 
+void test_static_helpers_on_snapshot() {
+    std::vector<Log> snapshot = {
+        {LogLevel::Debug, "TAG", 1, 1, "a"},
+        {LogLevel::Info, "TAG", 2, 2, "b"},
+        {LogLevel::Warn, "TAG", 3, 3, "c"},
+        {LogLevel::Info, "TAG", 4, 4, "d"},
+    };
+
+    expect_equal(ESPLogger::getLogCount(snapshot, LogLevel::Info), 2, "Static getLogCount should work on snapshots");
+    expect_equal(ESPLogger::getLogCount(snapshot, LogLevel::Error), 0, "Static getLogCount should return zero if no match");
+
+    const auto warnLogs = ESPLogger::getLogs(snapshot, LogLevel::Warn);
+    expect_equal(warnLogs.size(), static_cast<size_t>(1), "Static getLogs should filter snapshots");
+    expect_equal(warnLogs.front().message, std::string("c"), "Static getLogs should preserve message order");
+}
+
 }  // namespace
 
 int main() {
@@ -228,6 +244,7 @@ int main() {
         test_set_log_level_updates_config();
         test_multiple_logger_instances_operate_independently();
         test_get_logs_by_level();
+        test_static_helpers_on_snapshot();
     } catch (const std::exception &ex) {
         std::cerr << "Test failure: " << ex.what() << '\n';
         return 1;
