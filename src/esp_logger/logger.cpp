@@ -59,11 +59,11 @@ void logWithEsp(LogLevel level,
 }
 
 
-Logger::~Logger() {
+ESPLogger::~ESPLogger() {
 	deinit();
 }
 
-bool Logger::init(const LoggerConfig &config) {
+bool ESPLogger::init(const LoggerConfig &config) {
 	if (_initialized) {
 		deinit();
 	}
@@ -117,7 +117,7 @@ bool Logger::init(const LoggerConfig &config) {
 	return true;
 }
 
-void Logger::deinit() {
+void ESPLogger::deinit() {
 	if (!_initialized) {
 		return;
 	}
@@ -147,49 +147,49 @@ void Logger::deinit() {
 	_initialized = false;
 }
 
-void Logger::onSync(SyncCallback callback) {
+void ESPLogger::onSync(SyncCallback callback) {
 	LockGuard guard(_mutex);
 	_syncCallback = std::move(callback);
 }
 
-void Logger::sync() {
+void ESPLogger::sync() {
 	performSync();
 }
 
-void Logger::debug(const char *tag, const char *fmt, ...) {
+void ESPLogger::debug(const char *tag, const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	logInternal(LogLevel::Debug, tag, fmt, args);
 	va_end(args);
 }
 
-void Logger::info(const char *tag, const char *fmt, ...) {
+void ESPLogger::info(const char *tag, const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	logInternal(LogLevel::Info, tag, fmt, args);
 	va_end(args);
 }
 
-void Logger::warn(const char *tag, const char *fmt, ...) {
+void ESPLogger::warn(const char *tag, const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	logInternal(LogLevel::Warn, tag, fmt, args);
 	va_end(args);
 }
 
-void Logger::error(const char *tag, const char *fmt, ...) {
+void ESPLogger::error(const char *tag, const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 	logInternal(LogLevel::Error, tag, fmt, args);
 	va_end(args);
 }
 
-std::vector<Log> Logger::getAllLogs() {
+std::vector<Log> ESPLogger::getAllLogs() {
 	LockGuard guard(_mutex);
 	return std::vector<Log>(_logs.begin(), _logs.end());
 }
 
-std::vector<Log> Logger::getLastLogs(size_t count) {
+std::vector<Log> ESPLogger::getLastLogs(size_t count) {
 	LockGuard guard(_mutex);
 	if (count == 0 || _logs.empty()) {
 		return {};
@@ -212,23 +212,23 @@ std::vector<Log> Logger::getLastLogs(size_t count) {
 	return result;
 }
 
-LoggerConfig Logger::currentConfig() const {
+LoggerConfig ESPLogger::currentConfig() const {
 	LockGuard guard(_mutex);
 	return _config;
 }
 
-void Logger::setLogLevel(LogLevel level) {
+void ESPLogger::setLogLevel(LogLevel level) {
 	LockGuard guard(_mutex);
 	_logLevel = level;
 	_config.consoleLogLevel = level;
 }
 
-LogLevel Logger::logLevel() const {
+LogLevel ESPLogger::logLevel() const {
 	LockGuard guard(_mutex);
 	return _logLevel;
 }
 
-void Logger::logInternal(LogLevel level, const char *tag, const char *fmt, va_list args) {
+void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va_list args) {
 	if (fmt == nullptr) {
 		return;
 	}
@@ -268,7 +268,7 @@ void Logger::logInternal(LogLevel level, const char *tag, const char *fmt, va_li
 	}
 }
 
-std::string Logger::formatMessage(const char *fmt, va_list args) {
+std::string ESPLogger::formatMessage(const char *fmt, va_list args) {
 	if (fmt == nullptr) {
 		return {};
 	}
@@ -292,7 +292,7 @@ std::string Logger::formatMessage(const char *fmt, va_list args) {
 	return std::string(buffer.data(), static_cast<size_t>(required));
 }
 
-void Logger::performSync() {
+void ESPLogger::performSync() {
 	SyncCallback callback;
 	std::vector<Log> logsSnapshot;
 
@@ -313,15 +313,15 @@ void Logger::performSync() {
 	}
 }
 
-void Logger::syncTaskThunk(void *arg) {
-	auto *instance = static_cast<Logger *>(arg);
+void ESPLogger::syncTaskThunk(void *arg) {
+	auto *instance = static_cast<ESPLogger *>(arg);
 	if (instance != nullptr) {
 		instance->syncTaskLoop();
 	}
 	vTaskDelete(nullptr);
 }
 
-void Logger::syncTaskLoop() {
+void ESPLogger::syncTaskLoop() {
 	while (_running) {
 		vTaskDelay(pdMS_TO_TICKS(_config.syncIntervalMS));
 		if (!_running) {

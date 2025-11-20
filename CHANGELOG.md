@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Changed
-- Clarified that the library no longer ships a global `logger` instance; documentation and examples now create their own `Logger` objects so multiple instances can coexist safely.
+- Clarified that the library no longer ships a global `logger` instance; documentation and examples now create their own `ESPLogger` objects so multiple instances can coexist safely.
 
 ## [1.0.2] - 2025-09-22
 ### Added
-- `Logger::init` now accepts no arguments, defaulting to the baked-in configuration; docs, examples, and tests highlight the zero-config path.
+- `ESPLogger::init` now accepts no arguments, defaulting to the baked-in configuration; docs, examples, and tests highlight the zero-config path.
 
 ### Fixed
 - Ensured the background sync task keeps running by marking `_running` before we create the task and resetting it if creation fails.

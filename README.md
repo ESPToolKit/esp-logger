@@ -21,7 +21,7 @@ Minimal setup:
 ```cpp
 #include <ESPLogger.h>
 
-static Logger logger;
+static ESPLogger logger;
 
 void setup() {
     Serial.begin(115200);
@@ -38,7 +38,7 @@ void setup() {
         }
     });
 
-    logger.info("INIT", "Logger initialised with %u entries", cfg.maxLogInRam);
+    logger.info("INIT", "ESPLogger initialised with %u entries", cfg.maxLogInRam);
 }
 
 void loop() {
@@ -52,7 +52,7 @@ Scope a logger inside your own class:
 ```cpp
 class SensorModule {
   public:
-    explicit SensorModule(Logger& logger) : _logger(logger) {}
+    explicit SensorModule(ESPLogger& logger) : _logger(logger) {}
 
     void update() {
         const float reading = analogRead(A0) / 1023.0f;
@@ -60,7 +60,7 @@ class SensorModule {
     }
 
   private:
-    Logger& _logger;
+    ESPLogger& _logger;
 };
 ```
 
@@ -69,7 +69,7 @@ Example sketches:
 - `examples/custom_sync` – manual syncing with a custom persistence callback.
 
 ## Gotchas
-- Keep `Logger` instances alive for as long as their sync task may run; destroying the object stops the task.
+- Keep `ESPLogger` instances alive for as long as their sync task may run; destroying the object stops the task.
 - When `enableSyncTask` is `false`, remember to call `logger.sync()` yourself or logs will stay buffered forever.
 - `setLogLevel` only affects console output; all logs remain available inside the RAM buffer until purged.
 - The `onSync` callback runs inside the sync task context—avoid blocking operations.
@@ -78,7 +78,7 @@ Example sketches:
 - `void init(const LoggerConfig& cfg = {})` – configure sync cadence, stack size, priorities, and thresholds.
 - `void debug/info/warn/error(const char* tag, const char* fmt, ...)` – emit formatted logs.
 - `void setLogLevel(LogLevel level)` / `LogLevel logLevel() const` – adjust console verbosity at runtime.
-- `void onSync(Logger::SyncCallback cb)` – receive batches of `Log` entries whenever the buffer flushes.
+- `void onSync(ESPLogger::SyncCallback cb)` – receive batches of `Log` entries whenever the buffer flushes.
 - `void sync()` – force a flush (useful when the background task is disabled).
 - `std::vector<Log> getAllLogs()` / `std::vector<Log> getLastLogs(size_t count)` – snapshot buffered entries.
 - `LoggerConfig currentConfig() const` – inspect the live settings.

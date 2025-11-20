@@ -2,11 +2,11 @@
 #include <ESPLogger.h>
 
 // Own a logger instance so helper classes can log without relying on globals.
-static Logger logger;
+static ESPLogger logger;
 
 class SensorSampler {
   public:
-    explicit SensorSampler(Logger& logger) : _logger(logger) {}
+    explicit SensorSampler(ESPLogger& logger) : _logger(logger) {}
 
     void logReading() {
         const float reading = analogRead(A0) / 1023.0f;
@@ -14,7 +14,7 @@ class SensorSampler {
     }
 
   private:
-    Logger& _logger;
+    ESPLogger& _logger;
 };
 
 static SensorSampler sampler(logger);
@@ -45,7 +45,7 @@ void setup() {
     config.consoleLogLevel = LogLevel::Debug;
 
     if (!logger.init(config)) {
-        Serial.println("Logger init failed");
+        Serial.println("ESPLogger init failed");
         return;
     }
 

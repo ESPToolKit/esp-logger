@@ -24,10 +24,10 @@ struct Log {
 
 using SyncCallback = std::function<void(const std::vector<Log>&)>;
 
-class Logger {
+class ESPLogger {
   public:
-    Logger() = default;
-    ~Logger();
+    ESPLogger() = default;
+    ~ESPLogger();
 
     bool init(const LoggerConfig& config = LoggerConfig{});
     void deinit();

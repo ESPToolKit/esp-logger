@@ -29,13 +29,13 @@ void expect_true(bool condition, const std::string &message) {
 }
 
 void test_init_with_default_config() {
-    Logger logger;
+    ESPLogger logger;
 
     if (!logger.init()) {
-        fail("Logger failed to initialize with default config");
+        fail("ESPLogger failed to initialize with default config");
     }
 
-    expect_true(logger.isInitialized(), "Logger should be initialized with default config");
+    expect_true(logger.isInitialized(), "ESPLogger should be initialized with default config");
     expect_equal(logger.logLevel(), LogLevel::Debug, "Default console log level should be Debug");
 
     const auto current = logger.currentConfig();
@@ -43,21 +43,21 @@ void test_init_with_default_config() {
     expect_equal(current.maxLogInRam, static_cast<size_t>(100), "Default maxLogInRam should be 100");
 
     logger.deinit();
-    expect_true(!logger.isInitialized(), "Logger should be deinitialized after default init test");
+    expect_true(!logger.isInitialized(), "ESPLogger should be deinitialized after default init test");
 }
 
 void test_init_applies_normalized_config() {
-    Logger logger;
+    ESPLogger logger;
     LoggerConfig config;
     config.enableSyncTask = false;
     config.maxLogInRam = 0;
     config.consoleLogLevel = LogLevel::Warn;
 
     if (!logger.init(config)) {
-        fail("Logger failed to initialize");
+        fail("ESPLogger failed to initialize");
     }
 
-    expect_true(logger.isInitialized(), "Logger should be initialized");
+    expect_true(logger.isInitialized(), "ESPLogger should be initialized");
     expect_equal(logger.logLevel(), LogLevel::Warn, "Log level should match config");
 
     const auto current = logger.currentConfig();
@@ -65,20 +65,20 @@ void test_init_applies_normalized_config() {
     expect_equal(current.consoleLogLevel, LogLevel::Warn, "consoleLogLevel should remain Warn");
 
     logger.deinit();
-    expect_true(!logger.isInitialized(), "Logger should be deinitialized");
+    expect_true(!logger.isInitialized(), "ESPLogger should be deinitialized");
 }
 
 void test_stores_logs_up_to_configured_capacity() {
     test_support::resetMillis();
 
-    Logger logger;
+    ESPLogger logger;
     LoggerConfig config;
     config.enableSyncTask = false;
     config.maxLogInRam = 2;
     config.consoleLogLevel = LogLevel::Debug;
 
     if (!logger.init(config)) {
-        fail("Logger failed to initialize");
+        fail("ESPLogger failed to initialize");
     }
 
     logger.debug("TEST", "first %d", 1);
@@ -102,14 +102,14 @@ void test_stores_logs_up_to_configured_capacity() {
 void test_sync_callback_receives_buffered_logs() {
     test_support::resetMillis();
 
-    Logger logger;
+    ESPLogger logger;
     LoggerConfig config;
     config.enableSyncTask = false;
     config.maxLogInRam = 10;
     config.consoleLogLevel = LogLevel::Debug;
 
     if (!logger.init(config)) {
-        fail("Logger failed to initialize");
+        fail("ESPLogger failed to initialize");
     }
 
     std::vector<Log> received;
@@ -133,14 +133,14 @@ void test_sync_callback_receives_buffered_logs() {
 }
 
 void test_set_log_level_updates_config() {
-    Logger logger;
+    ESPLogger logger;
     LoggerConfig config;
     config.enableSyncTask = false;
     config.maxLogInRam = 5;
     config.consoleLogLevel = LogLevel::Debug;
 
     if (!logger.init(config)) {
-        fail("Logger failed to initialize");
+        fail("ESPLogger failed to initialize");
     }
 
     logger.setLogLevel(LogLevel::Error);
@@ -154,8 +154,8 @@ void test_set_log_level_updates_config() {
 void test_multiple_logger_instances_operate_independently() {
     test_support::resetMillis();
 
-    Logger first;
-    Logger second;
+    ESPLogger first;
+    ESPLogger second;
 
     LoggerConfig configA;
     configA.enableSyncTask = false;

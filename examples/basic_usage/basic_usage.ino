@@ -2,11 +2,11 @@
 #include <ESPLogger.h>
 
 // Create a dedicated logger instance for this sketch and any helper classes.
-static Logger logger;
+static ESPLogger logger;
 
 class HeartbeatReporter {
   public:
-    explicit HeartbeatReporter(Logger& logger) : _logger(logger) {}
+    explicit HeartbeatReporter(ESPLogger& logger) : _logger(logger) {}
 
     void log(uint32_t counter) {
         _logger.info("APP", "Heartbeat %lu", static_cast<unsigned long>(counter));
@@ -21,7 +21,7 @@ class HeartbeatReporter {
     }
 
   private:
-    Logger& _logger;
+    ESPLogger& _logger;
 };
 
 static HeartbeatReporter heartbeat(logger);
@@ -50,7 +50,7 @@ void setup() {
 
     logger.onSync(logSyncCallback);
 
-    logger.info("INIT", "Logger ready. Max buffer: %u", static_cast<unsigned>(config.maxLogInRam));
+    logger.info("INIT", "ESPLogger ready. Max buffer: %u", static_cast<unsigned>(config.maxLogInRam));
 }
 
 void loop() {
