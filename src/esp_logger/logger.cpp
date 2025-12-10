@@ -1,14 +1,20 @@
 #include "esp_logger/logger.h"
 
-#include <esp_log.h>
-
 #include <algorithm>
 #include <cstdio>
-#include <inttypes.h>
 #include <iterator>
 #include <string>
 #include <utility>
 #include <vector>
+
+#ifndef ESPLOGGER_USE_ESP_LOG
+#define ESPLOGGER_USE_ESP_LOG 0
+#endif
+
+#if ESPLOGGER_USE_ESP_LOG
+#include <esp_log.h>
+#include <inttypes.h>
+#endif
 
 class LockGuard {
   public:
@@ -33,11 +39,12 @@ class LockGuard {
 
 constexpr const char *kSyncTaskName = "ESPLoggerSync";
 
-void logWithEsp(LogLevel level,
-			   const char *tag,
-			   uint32_t millisValue,
-			   std::time_t timestamp,
-			   const std::string &message) {
+#if ESPLOGGER_USE_ESP_LOG
+static void logWithEsp(LogLevel level,
+					   const char *tag,
+					   uint32_t millisValue,
+					   std::time_t timestamp,
+					   const std::string &message) {
 	const unsigned long millisUnsigned = static_cast<unsigned long>(millisValue);
 	const int64_t timestampValue = static_cast<int64_t>(timestamp);
 
@@ -56,6 +63,39 @@ void logWithEsp(LogLevel level,
 		ESP_LOGE(tag, "[%lu][%" PRIi64 "] %s", millisUnsigned, timestampValue, message.c_str());
 		break;
 	}
+}
+#endif
+
+static void logWithPrintf(LogLevel level, const char *tag, const std::string &message) {
+	switch (level) {
+	case LogLevel::Debug:
+		printf("[D] [%s] ~ %s\n", tag, message.c_str());
+		break;
+	case LogLevel::Info:
+		printf("[I] [%s] ~ %s\n", tag, message.c_str());
+		break;
+	case LogLevel::Warn:
+		printf("[W] [%s] ~ %s\n", tag, message.c_str());
+		break;
+	case LogLevel::Error:
+	default:
+		printf("[E] [%s] ~ %s\n", tag, message.c_str());
+		break;
+	}
+}
+
+static void logToConsole(LogLevel level,
+						 const char *tag,
+						 uint32_t millisValue,
+						 std::time_t timestamp,
+						 const std::string &message) {
+#if ESPLOGGER_USE_ESP_LOG
+	logWithEsp(level, tag, millisValue, timestamp, message);
+#else
+	(void)millisValue;
+	(void)timestamp;
+	logWithPrintf(level, tag, message);
+#endif
 }
 
 
@@ -296,7 +336,7 @@ void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va
 	}
 
 	if (logToConsole) {
-		logWithEsp(level, normalizedTag, nowMillis, nowUtc, message);
+		logToConsole(level, normalizedTag, nowMillis, nowUtc, message);
 	}
 }
 

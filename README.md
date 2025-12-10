@@ -15,7 +15,7 @@ A lightweight, configurable logging utility for ESP32 projects. ESPLogger combin
 - Helpers to fetch every buffered log or just the most recent entries whenever you need diagnostics.
 - Filter helpers to count or retrieve buffered logs at a specific level without flushing them.
 - Static helpers to count or filter the snapshot passed into `onSync` without relying on internal buffers.
-- Console output automatically routed through the ESP-IDF `ESP_LOGx` macros.
+- Console output defaults to a minimal `printf` backend; opt into ESP-IDF `ESP_LOGx` macros with a single build flag when you want IDF-style logs.
 
 ## Examples
 Minimal setup:
@@ -70,6 +70,17 @@ Example sketches:
 - `examples/basic_usage` – minimal configuration + periodic logging.
 - `examples/custom_sync` – manual syncing with a custom persistence callback.
 
+## Console backend
+ESPLogger prints with a minimal `printf` backend by default, producing lines like:
+
+```
+[I] [NETWORK] ~ Connected to Wi-Fi
+```
+
+Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your build flags to switch the console bridge:
+- PlatformIO: `build_flags = -DESPLOGGER_USE_ESP_LOG=1`
+- Arduino CLI: `--build-property build.extra_flags=-DESPLOGGER_USE_ESP_LOG=1`
+
 ## Gotchas
 - Keep `ESPLogger` instances alive for as long as their sync task may run; destroying the object stops the task.
 - When `enableSyncTask` is `false`, remember to call `logger.sync()` yourself or logs will stay buffered forever.
@@ -105,7 +116,7 @@ Stack sizes are expressed in bytes.
 ## Restrictions
 - Built for ESP32 + FreeRTOS (Arduino or ESP-IDF) with C++17 enabled.
 - Uses dynamic allocation for the RAM buffer; size `maxLogInRam` according to your heap budget.
-- Console output routes through ESP-IDF logging, so set `CONFIG_LOG_COLORS`/levels in menuconfig as needed.
+- Console output uses `printf` by default; define `ESPLOGGER_USE_ESP_LOG=1` if you want ESP-IDF log colors/levels managed via menuconfig.
 
 ## Tests
 A host-driven test suite lives under `test/` and is wired into CTest. Run it with:

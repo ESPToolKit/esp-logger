@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Changed
 - Clarified that the library no longer ships a global `logger` instance; documentation and examples now create their own `ESPLogger` objects so multiple instances can coexist safely.
+- Default console output now uses a lightweight `printf` backend; set `ESPLOGGER_USE_ESP_LOG=1` to opt back into ESP-IDF logging macros when you prefer their formatting.
 
 ## [1.0.2] - 2025-09-22
 ### Added
