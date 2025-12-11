@@ -318,7 +318,7 @@ void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va
 	uint32_t nowMillis = millis();
 	std::time_t nowUtc = std::time(nullptr);
 
-	bool logToConsole = false;
+	bool shouldLogToConsole = false;
 
 	{
 		LockGuard guard(_mutex);
@@ -326,7 +326,7 @@ void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va
 			return;
 		}
 
-		logToConsole = static_cast<int>(level) >= static_cast<int>(_logLevel);
+		shouldLogToConsole = static_cast<int>(level) >= static_cast<int>(_logLevel);
 
 		if (_logs.size() >= _config.maxLogInRam) {
 			_logs.pop_front();
@@ -335,7 +335,7 @@ void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va
 		_logs.emplace_back(Log{level, normalizedTag, nowMillis, nowUtc, message});
 	}
 
-	if (logToConsole) {
+	if (shouldLogToConsole) {
 		logToConsole(level, normalizedTag, nowMillis, nowUtc, message);
 	}
 }
