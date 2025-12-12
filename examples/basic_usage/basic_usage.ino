@@ -2,10 +2,10 @@
 #include <ESPLogger.h>
 
 // Create a dedicated logger instance for this sketch and any helper classes.
-static ESPLogger logger;
+ESPLogger logger;
 
 class HeartbeatReporter {
-  public:
+   public:
     explicit HeartbeatReporter(ESPLogger& logger) : _logger(logger) {}
 
     void log(uint32_t counter) {
@@ -20,7 +20,7 @@ class HeartbeatReporter {
         }
     }
 
-  private:
+   private:
     ESPLogger& _logger;
 };
 
@@ -39,8 +39,8 @@ void setup() {
 
     // Quick start: omit the config entirely and call logger.init() to use all defaults.
     LoggerConfig config;
-    config.syncIntervalMS = 3000;      // sync every 3 seconds
-    config.maxLogInRam = 25;           // keep a small buffer in RAM
+    config.syncIntervalMS = 3000;  // sync every 3 seconds
+    config.maxLogInRam = 25;       // keep a small buffer in RAM
     config.consoleLogLevel = LogLevel::Info;
 
     if (!logger.init(config)) {

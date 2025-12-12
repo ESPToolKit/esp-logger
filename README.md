@@ -23,7 +23,7 @@ Minimal setup:
 ```cpp
 #include <ESPLogger.h>
 
-static ESPLogger logger;
+ESPLogger logger;
 
 void setup() {
     Serial.begin(115200);

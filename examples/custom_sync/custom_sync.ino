@@ -2,10 +2,10 @@
 #include <ESPLogger.h>
 
 // Own a logger instance so helper classes can log without relying on globals.
-static ESPLogger logger;
+ESPLogger logger;
 
 class SensorSampler {
-  public:
+   public:
     explicit SensorSampler(ESPLogger& logger) : _logger(logger) {}
 
     void logReading() {
@@ -13,7 +13,7 @@ class SensorSampler {
         _logger.debug("DATA", "Sensor reading: %0.2f", reading);
     }
 
-  private:
+   private:
     ESPLogger& _logger;
 };
 
@@ -22,7 +22,7 @@ static SensorSampler sampler(logger);
 namespace {
 constexpr uint32_t kManualSyncIntervalMS = 5000;
 uint32_t lastSyncMs = 0;
-}
+}  // namespace
 
 void persistLogs(const std::vector<Log>& logs) {
     Serial.printf("Persisting %u buffered entries\n", static_cast<unsigned>(logs.size()));
@@ -40,7 +40,7 @@ void setup() {
 
     // Defaults are fine for many cases; call logger.init() without a config to use them.
     LoggerConfig config;
-    config.enableSyncTask = false;    // we will drive sync manually
+    config.enableSyncTask = false;  // we will drive sync manually
     config.maxLogInRam = 50;
     config.consoleLogLevel = LogLevel::Debug;
 
