@@ -98,6 +98,22 @@ static void logToConsole(LogLevel level,
 #endif
 }
 
+static void invokeLiveCallback(const LiveCallback &callback, const Log &entry) {
+	if (!callback) {
+		return;
+	}
+
+#if defined(__cpp_exceptions)
+	try {
+		callback(entry);
+	} catch (...) {
+		// Never let user callbacks unwind through logger code.
+	}
+#else
+	callback(entry);
+#endif
+}
+
 
 ESPLogger::~ESPLogger() {
 	deinit();
@@ -175,6 +191,7 @@ void ESPLogger::deinit() {
 		LockGuard guard(_mutex);
 		_logs.clear();
 		_syncCallback = nullptr;
+		_liveCallback = nullptr;
 		_config = LoggerConfig{};
 		_logLevel = _config.consoleLogLevel;
 	}
@@ -190,6 +207,16 @@ void ESPLogger::deinit() {
 void ESPLogger::onSync(SyncCallback callback) {
 	LockGuard guard(_mutex);
 	_syncCallback = std::move(callback);
+}
+
+void ESPLogger::attach(LiveCallback callback) {
+	LockGuard guard(_mutex);
+	_liveCallback = std::move(callback);
+}
+
+void ESPLogger::detach() {
+	LockGuard guard(_mutex);
+	_liveCallback = nullptr;
 }
 
 void ESPLogger::sync() {
@@ -319,6 +346,9 @@ void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va
 	std::time_t nowUtc = std::time(nullptr);
 
 	bool shouldLogToConsole = false;
+	bool shouldInvokeLiveCallback = false;
+	LiveCallback liveCallback;
+	Log liveEntry;
 
 	{
 		LockGuard guard(_mutex);
@@ -333,10 +363,20 @@ void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va
 		}
 
 		_logs.emplace_back(Log{level, normalizedTag, nowMillis, nowUtc, message});
+
+		if (_liveCallback) {
+			shouldInvokeLiveCallback = true;
+			liveCallback = _liveCallback;
+			liveEntry = _logs.back();
+		}
 	}
 
 	if (shouldLogToConsole) {
 		logToConsole(level, normalizedTag, nowMillis, nowUtc, message);
+	}
+
+	if (shouldInvokeLiveCallback) {
+		invokeLiveCallback(liveCallback, liveEntry);
 	}
 }
 

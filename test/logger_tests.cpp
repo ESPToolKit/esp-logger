@@ -132,6 +132,94 @@ void test_sync_callback_receives_buffered_logs() {
     logger.deinit();
 }
 
+void test_live_callback_receives_logs_immediately() {
+    test_support::resetMillis();
+
+    ESPLogger logger;
+    LoggerConfig config;
+    config.enableSyncTask = false;
+    config.maxLogInRam = 10;
+    config.consoleLogLevel = LogLevel::Error;
+
+    if (!logger.init(config)) {
+        fail("ESPLogger failed to initialize");
+    }
+
+    std::vector<Log> liveLogs;
+    logger.attach([&liveLogs](const Log &entry) { liveLogs.push_back(entry); });
+
+    logger.info("LIVE", "first %d", 1);
+    logger.warn("LIVE", "second %d", 2);
+
+    expect_equal(liveLogs.size(), static_cast<size_t>(2), "Live callback should run on every log call");
+    expect_equal(liveLogs.front().level, LogLevel::Info, "Live callback first level mismatch");
+    expect_equal(liveLogs.front().tag, std::string("LIVE"), "Live callback first tag mismatch");
+    expect_equal(liveLogs.front().message, std::string("first 1"), "Live callback first message mismatch");
+    expect_equal(liveLogs.back().level, LogLevel::Warn, "Live callback second level mismatch");
+    expect_equal(liveLogs.back().message, std::string("second 2"), "Live callback second message mismatch");
+    expect_equal(logger.getAllLogs().size(), static_cast<size_t>(2), "Live callback should not affect RAM log buffering");
+
+    logger.deinit();
+}
+
+void test_detach_disables_live_callback() {
+    test_support::resetMillis();
+
+    ESPLogger logger;
+    LoggerConfig config;
+    config.enableSyncTask = false;
+    config.maxLogInRam = 10;
+    config.consoleLogLevel = LogLevel::Debug;
+
+    if (!logger.init(config)) {
+        fail("ESPLogger failed to initialize");
+    }
+
+    size_t callCount = 0;
+    logger.attach([&callCount](const Log &) { ++callCount; });
+    logger.info("DETACH", "before");
+    logger.detach();
+    logger.info("DETACH", "after");
+
+    expect_equal(callCount, static_cast<size_t>(1), "detach should stop live callback notifications");
+
+    logger.deinit();
+}
+
+void test_live_and_sync_callbacks_can_be_used_together() {
+    test_support::resetMillis();
+
+    ESPLogger logger;
+    LoggerConfig config;
+    config.enableSyncTask = false;
+    config.maxLogInRam = 10;
+    config.consoleLogLevel = LogLevel::Debug;
+
+    if (!logger.init(config)) {
+        fail("ESPLogger failed to initialize");
+    }
+
+    std::vector<Log> liveLogs;
+    std::vector<Log> syncedLogs;
+
+    logger.attach([&liveLogs](const Log &entry) { liveLogs.push_back(entry); });
+    logger.onSync([&syncedLogs](const std::vector<Log> &logs) { syncedLogs = logs; });
+
+    logger.debug("COEXIST", "a");
+    logger.error("COEXIST", "b");
+
+    expect_equal(liveLogs.size(), static_cast<size_t>(2), "Live callback should observe both entries");
+    expect_true(syncedLogs.empty(), "Sync callback should not run until sync() is called");
+
+    logger.sync();
+
+    expect_equal(syncedLogs.size(), static_cast<size_t>(2), "Sync callback should still receive buffered entries");
+    expect_equal(syncedLogs.front().message, std::string("a"), "First synced message mismatch");
+    expect_equal(syncedLogs.back().message, std::string("b"), "Second synced message mismatch");
+
+    logger.deinit();
+}
+
 void test_set_log_level_updates_config() {
     ESPLogger logger;
     LoggerConfig config;
@@ -241,6 +329,9 @@ int main() {
         test_init_applies_normalized_config();
         test_stores_logs_up_to_configured_capacity();
         test_sync_callback_receives_buffered_logs();
+        test_live_callback_receives_logs_immediately();
+        test_detach_disables_live_callback();
+        test_live_and_sync_callbacks_can_be_used_together();
         test_set_log_level_updates_config();
         test_multiple_logger_instances_operate_independently();
         test_get_logs_by_level();

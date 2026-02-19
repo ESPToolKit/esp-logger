@@ -23,6 +23,7 @@ struct Log {
 };
 
 using SyncCallback = std::function<void(const std::vector<Log>&)>;
+using LiveCallback = std::function<void(const Log&)>;
 
 class ESPLogger {
   public:
@@ -34,6 +35,8 @@ class ESPLogger {
     bool isInitialized() const { return _initialized; }
 
     void onSync(SyncCallback callback);
+    void attach(LiveCallback callback);
+    void detach();
 
     void sync();
 
@@ -67,5 +70,6 @@ class ESPLogger {
     SemaphoreHandle_t _mutex = nullptr;
     std::deque<Log> _logs;
     SyncCallback _syncCallback;
+    LiveCallback _liveCallback;
     LogLevel _logLevel = LogLevel::Debug;
 };

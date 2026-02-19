@@ -11,6 +11,7 @@ A lightweight, configurable logging utility for ESP32 projects. ESPLogger combin
 - Familiar `debug`/`info`/`warn`/`error` helpers with `printf` formatting semantics.
 - Configurable behavior: batching thresholds, FreeRTOS core/stack/priority, and console log level.
 - Optional background sync task plus manual `sync()` for deterministic flushes.
+- Live callback support via `attach` so each emitted log entry can be streamed in real time.
 - `onSync` callback hands over a vector of structured `Log` entries for custom persistence.
 - Helpers to fetch every buffered log or just the most recent entries whenever you need diagnostics.
 - Filter helpers to count or retrieve buffered logs at a specific level without flushing them.
@@ -38,6 +39,11 @@ void setup() {
         for (const auto& entry : logs) {
             // Persist logs to flash, send over Wi-Fi, etc.
         }
+    });
+
+    logger.attach([](const Log& entry) {
+        // Called immediately for every log entry.
+        // Forward to websockets, telemetry, etc.
     });
 
     logger.info("INIT", "ESPLogger initialised with %u entries", cfg.maxLogInRam);
@@ -86,11 +92,13 @@ Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your buil
 - When `enableSyncTask` is `false`, remember to call `logger.sync()` yourself or logs will stay buffered forever.
 - `setLogLevel` only affects console output; all logs remain available inside the RAM buffer until purged.
 - Inside `onSync`, the internal buffer has already been cleared—use the static helper overloads that take the `logs` snapshot to count or filter entries.
+- `attach` callbacks run in the caller context of `debug/info/warn/error`; keep handlers fast and non-blocking.
 - The `onSync` callback runs inside the sync task context—avoid blocking operations.
 
 ## API Reference
 - `void init(const LoggerConfig& cfg = {})` – configure sync cadence, stack size, priorities, and thresholds.
 - `void debug/info/warn/error(const char* tag, const char* fmt, ...)` – emit formatted logs.
+- `void attach(LiveCallback cb)` / `void detach()` – register or remove a per-entry live callback invoked on every emitted log entry.
 - `void setLogLevel(LogLevel level)` / `LogLevel logLevel() const` – adjust console verbosity at runtime.
 - `void onSync(ESPLogger::SyncCallback cb)` – receive batches of `Log` entries whenever the buffer flushes.
 - `void sync()` – force a flush (useful when the background task is disabled).

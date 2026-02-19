@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 - `ESPLogger::init` now accepts no arguments, defaulting to the baked-in configuration; docs, examples, and tests highlight the zero-config path.
+- Added lightweight live log callbacks via `attach`/`detach`, allowing per-entry streaming while keeping existing `onSync` batch flushing.
 
 ### Fixed
 - Ensured the background sync task keeps running by marking `_running` before we create the task and resetting it if creation fails.
