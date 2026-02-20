@@ -10,7 +10,7 @@ A lightweight, configurable logging utility for ESP32 projects. ESPLogger combin
 ## Features
 - Familiar `debug`/`info`/`warn`/`error` helpers with `printf` formatting semantics.
 - Configurable behavior: batching thresholds, FreeRTOS core/stack/priority, and console log level.
-- Optional background sync task plus manual `sync()` for deterministic flushes.
+- Optional background sync task (managed by `ESPWorker`) plus manual `sync()` for deterministic flushes.
 - Optional PSRAM-backed internal buffers via `LoggerConfig::usePSRAMBuffers` with automatic fallback to normal heap.
 - Live callback support via `attach` so each emitted log entry can be streamed in real time.
 - `onSync` callback hands over a vector of structured `Log` entries for custom persistence.
@@ -90,7 +90,7 @@ Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your buil
 - Arduino CLI: `--build-property build.extra_flags=-DESPLOGGER_USE_ESP_LOG=1`
 
 ## Gotchas
-- Keep `ESPLogger` instances alive for as long as their sync task may run; destroying the object stops the task.
+- Keep `ESPLogger` instances alive for as long as their sync worker may run; destroying the object stops the worker.
 - When `enableSyncTask` is `false`, remember to call `logger.sync()` yourself or logs will stay buffered forever.
 - `setLogLevel` only affects console output; all logs remain available inside the RAM buffer until purged.
 - Inside `onSync`, the internal buffer has already been cleared—use the static helper overloads that take the `logs` snapshot to count or filter entries.
