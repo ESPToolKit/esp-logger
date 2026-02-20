@@ -41,6 +41,7 @@ void test_init_with_default_config() {
     const auto current = logger.currentConfig();
     expect_true(current.enableSyncTask, "Default config should enable the sync task");
     expect_equal(current.maxLogInRam, static_cast<size_t>(100), "Default maxLogInRam should be 100");
+    expect_true(!current.usePSRAMBuffers, "Default usePSRAMBuffers should be false");
 
     logger.deinit();
     expect_true(!logger.isInitialized(), "ESPLogger should be deinitialized after default init test");
@@ -52,6 +53,7 @@ void test_init_applies_normalized_config() {
     config.enableSyncTask = false;
     config.maxLogInRam = 0;
     config.consoleLogLevel = LogLevel::Warn;
+    config.usePSRAMBuffers = true;
 
     if (!logger.init(config)) {
         fail("ESPLogger failed to initialize");
@@ -63,6 +65,7 @@ void test_init_applies_normalized_config() {
     const auto current = logger.currentConfig();
     expect_equal(current.maxLogInRam, static_cast<size_t>(1), "maxLogInRam should normalize to 1");
     expect_equal(current.consoleLogLevel, LogLevel::Warn, "consoleLogLevel should remain Warn");
+    expect_true(current.usePSRAMBuffers, "usePSRAMBuffers should match config");
 
     logger.deinit();
     expect_true(!logger.isInitialized(), "ESPLogger should be deinitialized");

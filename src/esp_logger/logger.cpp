@@ -134,9 +134,13 @@ bool ESPLogger::init(const LoggerConfig &config) {
 		return false;
 	}
 
+	_usePSRAMBuffers = normalized.usePSRAMBuffers;
+	_logAllocator = LoggerAllocator<Log>(_usePSRAMBuffers);
+	_charAllocator = LoggerAllocator<char>(_usePSRAMBuffers);
+
 	{
 		LockGuard guard(_mutex);
-		_logs.clear();
+		_logs = InternalLogDeque(_logAllocator);
 		_config = normalized;
 		_logLevel = _config.consoleLogLevel;
 	}
@@ -158,9 +162,12 @@ bool ESPLogger::init(const LoggerConfig &config) {
 		if (result != pdPASS) {
 			_running = false;
 			LockGuard guard(_mutex);
-			_logs.clear();
+			_logs = InternalLogDeque(_logAllocator);
 			_config = LoggerConfig{};
 			_logLevel = _config.consoleLogLevel;
+			_usePSRAMBuffers = false;
+			_logAllocator = LoggerAllocator<Log>(_usePSRAMBuffers);
+			_charAllocator = LoggerAllocator<char>(_usePSRAMBuffers);
 			vSemaphoreDelete(_mutex);
 			_mutex = nullptr;
 			_syncTask = nullptr;
@@ -189,11 +196,14 @@ void ESPLogger::deinit() {
 
 	{
 		LockGuard guard(_mutex);
-		_logs.clear();
+		_logs = InternalLogDeque(_logAllocator);
 		_syncCallback = nullptr;
 		_liveCallback = nullptr;
 		_config = LoggerConfig{};
 		_logLevel = _config.consoleLogLevel;
+		_usePSRAMBuffers = false;
+		_logAllocator = LoggerAllocator<Log>(_usePSRAMBuffers);
+		_charAllocator = LoggerAllocator<char>(_usePSRAMBuffers);
 	}
 
 	if (_mutex != nullptr) {
@@ -394,7 +404,7 @@ std::string ESPLogger::formatMessage(const char *fmt, va_list args) {
 		return {};
 	}
 
-	std::vector<char> buffer(static_cast<size_t>(required) + 1, '\0');
+	InternalCharVector buffer(static_cast<size_t>(required) + 1, '\0', _charAllocator);
 
 	va_list args_copy2;
 	va_copy(args_copy2, args);
@@ -406,7 +416,7 @@ std::string ESPLogger::formatMessage(const char *fmt, va_list args) {
 
 void ESPLogger::performSync() {
 	SyncCallback callback;
-	std::vector<Log> logsSnapshot;
+	InternalLogVector logsSnapshot(_logAllocator);
 
 	{
 		LockGuard guard(_mutex);
@@ -421,7 +431,8 @@ void ESPLogger::performSync() {
 	}
 
 	if (callback) {
-		callback(logsSnapshot);
+		std::vector<Log> callbackLogs(logsSnapshot.begin(), logsSnapshot.end());
+		callback(callbackLogs);
 	}
 }
 

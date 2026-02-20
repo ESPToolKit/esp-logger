@@ -11,6 +11,7 @@ A lightweight, configurable logging utility for ESP32 projects. ESPLogger combin
 - Familiar `debug`/`info`/`warn`/`error` helpers with `printf` formatting semantics.
 - Configurable behavior: batching thresholds, FreeRTOS core/stack/priority, and console log level.
 - Optional background sync task plus manual `sync()` for deterministic flushes.
+- Optional PSRAM-backed internal buffers via `LoggerConfig::usePSRAMBuffers` with automatic fallback to normal heap.
 - Live callback support via `attach` so each emitted log entry can be streamed in real time.
 - `onSync` callback hands over a vector of structured `Log` entries for custom persistence.
 - Helpers to fetch every buffered log or just the most recent entries whenever you need diagnostics.
@@ -33,6 +34,7 @@ void setup() {
     cfg.syncIntervalMS = 5000;
     cfg.maxLogInRam = 100;
     cfg.consoleLogLevel = LogLevel::Info;
+    cfg.usePSRAMBuffers = true; // Safe on non-PSRAM boards (falls back automatically)
     logger.init(cfg);
 
     logger.onSync([](const std::vector<Log>& logs) {
@@ -96,7 +98,7 @@ Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your buil
 - The `onSync` callback runs inside the sync task context—avoid blocking operations.
 
 ## API Reference
-- `void init(const LoggerConfig& cfg = {})` – configure sync cadence, stack size, priorities, and thresholds.
+- `bool init(const LoggerConfig& cfg = {})` – configure sync cadence, stack size, priorities, and thresholds.
 - `void debug/info/warn/error(const char* tag, const char* fmt, ...)` – emit formatted logs.
 - `void attach(LiveCallback cb)` / `void detach()` – register or remove a per-entry live callback invoked on every emitted log entry.
 - `void setLogLevel(LogLevel level)` / `LogLevel logLevel() const` – adjust console verbosity at runtime.
@@ -118,6 +120,7 @@ Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your buil
 | `priority` | `1` | FreeRTOS priority for the sync task. |
 | `consoleLogLevel` | `LogLevel::Debug` | Minimum level printed to the console. |
 | `enableSyncTask` | `true` | Disable to opt out of the background task and call `logger.sync()` manually. |
+| `usePSRAMBuffers` | `false` | Prefer PSRAM for logger-owned buffers (`_logs`, format temp buffers, sync staging) when available; falls back to normal heap if not. |
 
 Stack sizes are expressed in bytes.
 

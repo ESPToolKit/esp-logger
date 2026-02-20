@@ -22,4 +22,5 @@ struct LoggerConfig {
     UBaseType_t priority = 1;
     LogLevel consoleLogLevel = LogLevel::Debug;
     bool enableSyncTask = true;
+    bool usePSRAMBuffers = false;
 };

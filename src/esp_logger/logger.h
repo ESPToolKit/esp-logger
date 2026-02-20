@@ -12,6 +12,7 @@
 #include <freertos/semphr.h>
 #include <freertos/task.h>
 
+#include "esp_logger/logger_allocator.h"
 #include "esp_logger/logger_config.h"
 
 struct Log {
@@ -24,6 +25,9 @@ struct Log {
 
 using SyncCallback = std::function<void(const std::vector<Log>&)>;
 using LiveCallback = std::function<void(const Log&)>;
+using InternalLogDeque = std::deque<Log, LoggerAllocator<Log>>;
+using InternalCharVector = std::vector<char, LoggerAllocator<char>>;
+using InternalLogVector = std::vector<Log, LoggerAllocator<Log>>;
 
 class ESPLogger {
   public:
@@ -68,8 +72,11 @@ class ESPLogger {
     bool _running = false;
     TaskHandle_t _syncTask = nullptr;
     SemaphoreHandle_t _mutex = nullptr;
-    std::deque<Log> _logs;
+    InternalLogDeque _logs;
     SyncCallback _syncCallback;
     LiveCallback _liveCallback;
     LogLevel _logLevel = LogLevel::Debug;
+    bool _usePSRAMBuffers = false;
+    LoggerAllocator<Log> _logAllocator{};
+    LoggerAllocator<char> _charAllocator{};
 };
