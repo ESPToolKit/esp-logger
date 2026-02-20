@@ -18,6 +18,7 @@ BaseType_t xTaskCreatePinnedToCore(TaskFunction_t task,
 
 void vTaskDelete(TaskHandle_t task);
 void vTaskDelay(TickType_t ticks);
+TickType_t xTaskGetTickCount(void);
 
 #ifdef __cplusplus
 }

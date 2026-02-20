@@ -13,6 +13,7 @@ struct FakeSemaphore {
 };
 
 std::atomic<unsigned long> g_fakeMillis{0};
+std::atomic<TickType_t> g_fakeTicks{0};
 
 }  // namespace
 
@@ -62,12 +63,19 @@ extern "C" BaseType_t xTaskCreatePinnedToCore(TaskFunction_t task,
 
 extern "C" void vTaskDelete(TaskHandle_t /*task*/) {}
 
-extern "C" void vTaskDelay(TickType_t /*ticks*/) {}
+extern "C" void vTaskDelay(TickType_t ticks) {
+    g_fakeTicks.fetch_add(ticks);
+}
+
+extern "C" TickType_t xTaskGetTickCount(void) {
+    return g_fakeTicks.load();
+}
 
 namespace test_support {
 
 void resetMillis(unsigned long start) {
     g_fakeMillis.store(start);
+    g_fakeTicks.store(static_cast<TickType_t>(start));
 }
 
 }  // namespace test_support

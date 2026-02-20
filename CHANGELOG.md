@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - Ensured the background sync task keeps running by marking `_running` before we create the task and resetting it if creation fails.
+- Added missing host-test FreeRTOS tick stubs (`xTaskGetTickCount`/tick advancement in `vTaskDelay`) so CMake CI builds compile after sync-task shutdown timing updates.
 
 ### Changed
 - Clarified that the library no longer ships a global `logger` instance; documentation and examples now create their own `ESPLogger` objects so multiple instances can coexist safely.
