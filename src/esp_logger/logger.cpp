@@ -145,44 +145,35 @@ bool ESPLogger::init(const LoggerConfig &config) {
 		_logLevel = _config.consoleLogLevel;
 	}
 
-		_running = false;
+	_running = false;
 	const bool shouldCreateTask = _config.enableSyncTask && _config.syncIntervalMS > 0;
-	ESPWorker::Config workerConfig{};
-	workerConfig.maxWorkers = 1;
-	workerConfig.stackSizeBytes = _config.stackSize;
-	workerConfig.priority = _config.priority;
-	workerConfig.coreId = _config.coreId;
-	workerConfig.enableExternalStacks = true;
-	_worker.init(workerConfig);
 
 	if (shouldCreateTask) {
 		_running = true;
-		WorkerConfig taskConfig{};
-		taskConfig.name = kSyncTaskName;
-		taskConfig.stackSizeBytes = _config.stackSize;
-		taskConfig.priority = _config.priority;
-		taskConfig.coreId = _config.coreId;
-		WorkerResult result =
-			_config.usePSRAMBuffers ? _worker.spawnExt([this]() { syncTaskLoop(); }, taskConfig)
-			                        : _worker.spawn([this]() { syncTaskLoop(); }, taskConfig);
+		const BaseType_t created = xTaskCreatePinnedToCore(
+			&ESPLogger::syncTaskThunk,
+			kSyncTaskName,
+			_config.stackSize,
+			this,
+			_config.priority,
+			&_syncTask,
+			_config.coreId);
 
-		if (!result) {
+		if (created != pdPASS) {
 			_running = false;
 			LockGuard guard(_mutex);
 			_logs = InternalLogDeque(_logAllocator);
 			_config = LoggerConfig{};
 			_logLevel = _config.consoleLogLevel;
 			_usePSRAMBuffers = false;
-			_logAllocator = LoggerAllocator<Log>(_usePSRAMBuffers);
-			_charAllocator = LoggerAllocator<char>(_usePSRAMBuffers);
+				_logAllocator = LoggerAllocator<Log>(_usePSRAMBuffers);
+				_charAllocator = LoggerAllocator<char>(_usePSRAMBuffers);
 				vSemaphoreDelete(_mutex);
 				_mutex = nullptr;
-				_syncTask.reset();
+				_syncTask = nullptr;
 				return false;
 			}
-		_syncTask = result.handler;
-
-		}
+	}
 
 	_initialized = true;
 	return true;
@@ -196,9 +187,14 @@ void ESPLogger::deinit() {
 	_running = false;
 
 	if (_syncTask != nullptr) {
-		(void)_syncTask->wait(pdMS_TO_TICKS(200));
-		(void)_syncTask->destroy();
-		_syncTask.reset();
+		TickType_t start = xTaskGetTickCount();
+		while (_syncTask != nullptr && (xTaskGetTickCount() - start) <= pdMS_TO_TICKS(200)) {
+			vTaskDelay(pdMS_TO_TICKS(10));
+		}
+		if (_syncTask != nullptr) {
+			vTaskDelete(_syncTask);
+			_syncTask = nullptr;
+		}
 	}
 
 	performSync();
@@ -219,8 +215,6 @@ void ESPLogger::deinit() {
 		vSemaphoreDelete(_mutex);
 		_mutex = nullptr;
 	}
-	_worker.deinit();
-
 	_initialized = false;
 }
 
@@ -461,4 +455,6 @@ void ESPLogger::syncTaskLoop() {
 		}
 		performSync();
 	}
+	_syncTask = nullptr;
+	vTaskDelete(nullptr);
 }

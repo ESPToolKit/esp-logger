@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include <ESPWorker.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <freertos/task.h>
@@ -70,10 +69,9 @@ class ESPLogger {
     void syncTaskLoop();
 
     LoggerConfig _config{};
-    ESPWorker _worker{};
     bool _initialized = false;
     bool _running = false;
-    std::shared_ptr<WorkerHandler> _syncTask{};
+    TaskHandle_t _syncTask = nullptr;
     SemaphoreHandle_t _mutex = nullptr;
     InternalLogDeque _logs;
     SyncCallback _syncCallback;

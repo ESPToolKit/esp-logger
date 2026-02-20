@@ -10,7 +10,7 @@ A lightweight, configurable logging utility for ESP32 projects. ESPLogger combin
 ## Features
 - Familiar `debug`/`info`/`warn`/`error` helpers with `printf` formatting semantics.
 - Configurable behavior: batching thresholds, FreeRTOS core/stack/priority, and console log level.
-- Optional background sync task (managed by `ESPWorker`) plus manual `sync()` for deterministic flushes.
+- Optional background sync task (native FreeRTOS task) plus manual `sync()` for deterministic flushes.
 - Optional PSRAM-backed internal buffers via `LoggerConfig::usePSRAMBuffers` with automatic fallback to normal heap.
 - Live callback support via `attach` so each emitted log entry can be streamed in real time.
 - `onSync` callback hands over a vector of structured `Log` entries for custom persistence.
