@@ -28,6 +28,7 @@ static HeartbeatReporter heartbeat(logger);
 
 // Optional: store a snapshot of logs the last time we synced.
 static std::vector<Log> lastSyncedLogs;
+static bool loggerStopped = false;
 
 void logSyncCallback(const std::vector<Log>& logs) {
     lastSyncedLogs = logs;
@@ -55,6 +56,10 @@ void setup() {
 
 void loop() {
     static uint32_t counter = 0;
+    if (loggerStopped) {
+        delay(1000);
+        return;
+    }
 
     logger.debug("LOOP", "This debug message only shows when consoleLogLevel <= Debug (%lu)",
                  static_cast<unsigned long>(counter));
@@ -62,5 +67,10 @@ void loop() {
     heartbeat.log(counter);
 
     counter++;
+    if (counter >= 30) {
+        logger.deinit();
+        loggerStopped = true;
+        Serial.println("Logger deinitialized after demo run");
+    }
     delay(1000);
 }
