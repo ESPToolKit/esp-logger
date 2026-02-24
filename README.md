@@ -57,6 +57,14 @@ void loop() {
 }
 ```
 
+Teardown explicitly when your component shuts down or reconfigures:
+
+```cpp
+void stopLogging() {
+    logger.deinit();
+}
+```
+
 Scope a logger inside your own class:
 
 ```cpp
@@ -91,6 +99,7 @@ Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your buil
 
 ## Gotchas
 - Keep `ESPLogger` instances alive for as long as their sync worker may run; destroying the object stops the worker.
+- Call `logger.deinit()` during shutdown/reconfiguration so pending buffered logs are flushed and callbacks are detached deterministically.
 - When `enableSyncTask` is `false`, remember to call `logger.sync()` yourself or logs will stay buffered forever.
 - `setLogLevel` only affects console output; all logs remain available inside the RAM buffer until purged.
 - Inside `onSync`, the internal buffer has already been cleared—use the static helper overloads that take the `logs` snapshot to count or filter entries.
@@ -99,6 +108,7 @@ Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your buil
 
 ## API Reference
 - `bool init(const LoggerConfig& cfg = {})` – configure sync cadence, stack size, priorities, and thresholds.
+- `void deinit()` / `bool isInitialized() const` – tear down runtime resources and inspect lifecycle state.
 - `void debug/info/warn/error(const char* tag, const char* fmt, ...)` – emit formatted logs.
 - `void attach(LiveCallback cb)` / `void detach()` – register or remove a per-entry live callback invoked on every emitted log entry.
 - `void setLogLevel(LogLevel level)` / `LogLevel logLevel() const` – adjust console verbosity at runtime.

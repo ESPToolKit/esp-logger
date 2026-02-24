@@ -114,6 +114,21 @@ static void invokeLiveCallback(const LiveCallback &callback, const Log &entry) {
 #endif
 }
 
+static void invokeSyncCallback(const SyncCallback &callback, const std::vector<Log> &logs) {
+	if (!callback) {
+		return;
+	}
+
+#if defined(__cpp_exceptions)
+	try {
+		callback(logs);
+	} catch (...) {
+		// Never let user callbacks unwind through logger code.
+	}
+#else
+	callback(logs);
+#endif
+}
 
 ESPLogger::~ESPLogger() {
 	deinit();
@@ -161,18 +176,24 @@ bool ESPLogger::init(const LoggerConfig &config) {
 
 		if (created != pdPASS) {
 			_running = false;
-			LockGuard guard(_mutex);
-			_logs = InternalLogDeque(_logAllocator);
-			_config = LoggerConfig{};
-			_logLevel = _config.consoleLogLevel;
+			{
+				LockGuard guard(_mutex);
+				_logs = InternalLogDeque(_logAllocator);
+				_syncCallback = nullptr;
+				_liveCallback = nullptr;
+				_config = LoggerConfig{};
+				_logLevel = _config.consoleLogLevel;
+			}
 			_usePSRAMBuffers = false;
-				_logAllocator = LoggerAllocator<Log>(_usePSRAMBuffers);
-				_charAllocator = LoggerAllocator<char>(_usePSRAMBuffers);
+			_logAllocator = LoggerAllocator<Log>(_usePSRAMBuffers);
+			_charAllocator = LoggerAllocator<char>(_usePSRAMBuffers);
+			if (_mutex != nullptr) {
 				vSemaphoreDelete(_mutex);
 				_mutex = nullptr;
-				_syncTask = nullptr;
-				return false;
 			}
+			_syncTask = nullptr;
+			return false;
+		}
 	}
 
 	_initialized = true;
@@ -180,10 +201,6 @@ bool ESPLogger::init(const LoggerConfig &config) {
 }
 
 void ESPLogger::deinit() {
-	if (!_initialized) {
-		return;
-	}
-
 	_running = false;
 
 	if (_syncTask != nullptr) {
@@ -197,25 +214,30 @@ void ESPLogger::deinit() {
 		}
 	}
 
-	performSync();
-
-	{
-		LockGuard guard(_mutex);
-		_logs = InternalLogDeque(_logAllocator);
-		_syncCallback = nullptr;
-		_liveCallback = nullptr;
-		_config = LoggerConfig{};
-		_logLevel = _config.consoleLogLevel;
-		_usePSRAMBuffers = false;
-		_logAllocator = LoggerAllocator<Log>(_usePSRAMBuffers);
-		_charAllocator = LoggerAllocator<char>(_usePSRAMBuffers);
-	}
-
 	if (_mutex != nullptr) {
+		performSync();
+		{
+			LockGuard guard(_mutex);
+			_logs = InternalLogDeque(_logAllocator);
+			_syncCallback = nullptr;
+			_liveCallback = nullptr;
+			_config = LoggerConfig{};
+			_logLevel = _config.consoleLogLevel;
+		}
 		vSemaphoreDelete(_mutex);
 		_mutex = nullptr;
 	}
+
+	_usePSRAMBuffers = false;
+	_logAllocator = LoggerAllocator<Log>(_usePSRAMBuffers);
+	_charAllocator = LoggerAllocator<char>(_usePSRAMBuffers);
+	_logs = InternalLogDeque(_logAllocator);
+	_syncCallback = nullptr;
+	_liveCallback = nullptr;
+	_config = LoggerConfig{};
+	_logLevel = _config.consoleLogLevel;
 	_initialized = false;
+	_syncTask = nullptr;
 }
 
 void ESPLogger::onSync(SyncCallback callback) {
@@ -429,15 +451,17 @@ void ESPLogger::performSync() {
 		}
 
 		callback = _syncCallback;
+		if (!callback) {
+			_logs.clear();
+			return;
+		}
 		logsSnapshot.reserve(_logs.size());
 		std::move(_logs.begin(), _logs.end(), std::back_inserter(logsSnapshot));
 		_logs.clear();
 	}
 
-	if (callback) {
-		std::vector<Log> callbackLogs(logsSnapshot.begin(), logsSnapshot.end());
-		callback(callbackLogs);
-	}
+	std::vector<Log> callbackLogs(logsSnapshot.begin(), logsSnapshot.end());
+	invokeSyncCallback(callback, callbackLogs);
 }
 
 void ESPLogger::syncTaskThunk(void *arg) {

@@ -71,6 +71,66 @@ void test_init_applies_normalized_config() {
     expect_true(!logger.isInitialized(), "ESPLogger should be deinitialized");
 }
 
+void test_deinit_is_safe_before_init() {
+    ESPLogger logger;
+    expect_true(!logger.isInitialized(), "Logger should start deinitialized");
+
+    logger.deinit();
+    expect_true(!logger.isInitialized(), "deinit should be safe before init");
+    expect_true(logger.getAllLogs().empty(), "Pre-init deinit should leave log storage empty");
+}
+
+void test_deinit_is_idempotent() {
+    ESPLogger logger;
+    LoggerConfig config;
+    config.enableSyncTask = false;
+    config.maxLogInRam = 4;
+    config.consoleLogLevel = LogLevel::Debug;
+
+    if (!logger.init(config)) {
+        fail("ESPLogger failed to initialize");
+    }
+
+    logger.info("TEST", "first");
+    logger.deinit();
+    expect_true(!logger.isInitialized(), "Logger should be deinitialized after first deinit");
+
+    logger.deinit();
+    expect_true(!logger.isInitialized(), "Logger should remain deinitialized after second deinit");
+    expect_true(logger.getAllLogs().empty(), "Idempotent deinit should not leave buffered logs");
+}
+
+void test_reinit_after_deinit() {
+    ESPLogger logger;
+
+    LoggerConfig firstConfig;
+    firstConfig.enableSyncTask = false;
+    firstConfig.maxLogInRam = 3;
+    firstConfig.consoleLogLevel = LogLevel::Warn;
+
+    if (!logger.init(firstConfig)) {
+        fail("First init failed");
+    }
+    logger.warn("REINIT", "one");
+    logger.deinit();
+    expect_true(!logger.isInitialized(), "Logger should be deinitialized before second init");
+
+    LoggerConfig secondConfig = firstConfig;
+    secondConfig.maxLogInRam = 8;
+    secondConfig.consoleLogLevel = LogLevel::Error;
+
+    if (!logger.init(secondConfig)) {
+        fail("Second init failed");
+    }
+
+    expect_true(logger.isInitialized(), "Logger should reinitialize successfully");
+    expect_true(logger.getAllLogs().empty(), "Reinit should start with an empty log buffer");
+    expect_equal(logger.currentConfig().maxLogInRam, static_cast<size_t>(8), "Second init config should be applied");
+    expect_equal(logger.logLevel(), LogLevel::Error, "Second init log level should be applied");
+
+    logger.deinit();
+}
+
 void test_stores_logs_up_to_configured_capacity() {
     test_support::resetMillis();
 
@@ -131,6 +191,50 @@ void test_sync_callback_receives_buffered_logs() {
     expect_equal(received.front().message, std::string("message 1"), "First flushed message incorrect");
     expect_equal(received.back().level, LogLevel::Error, "Second flushed level incorrect");
     expect_equal(received.back().message, std::string("message 2"), "Second flushed message incorrect");
+
+    logger.deinit();
+}
+
+void test_deinit_flushes_and_clears_callbacks() {
+    test_support::resetMillis();
+
+    ESPLogger logger;
+    LoggerConfig config;
+    config.enableSyncTask = false;
+    config.maxLogInRam = 8;
+    config.consoleLogLevel = LogLevel::Debug;
+
+    if (!logger.init(config)) {
+        fail("ESPLogger failed to initialize");
+    }
+
+    size_t liveCallCount = 0;
+    size_t syncCallCount = 0;
+    size_t lastSyncedBatchSize = 0;
+
+    logger.attach([&liveCallCount](const Log &) { ++liveCallCount; });
+    logger.onSync([&syncCallCount, &lastSyncedBatchSize](const std::vector<Log> &logs) {
+        ++syncCallCount;
+        lastSyncedBatchSize = logs.size();
+    });
+
+    logger.info("TEARDOWN", "before deinit");
+    expect_equal(liveCallCount, static_cast<size_t>(1), "Live callback should run before deinit");
+
+    logger.deinit();
+    expect_true(!logger.isInitialized(), "Logger should be deinitialized");
+    expect_equal(syncCallCount, static_cast<size_t>(1), "deinit should flush buffered logs exactly once");
+    expect_equal(lastSyncedBatchSize, static_cast<size_t>(1), "deinit flush should include pending log entries");
+
+    if (!logger.init(config)) {
+        fail("ESPLogger failed to reinitialize");
+    }
+
+    logger.info("TEARDOWN", "after deinit");
+    logger.sync();
+
+    expect_equal(liveCallCount, static_cast<size_t>(1), "Live callback should be cleared by deinit");
+    expect_equal(syncCallCount, static_cast<size_t>(1), "Sync callback should be cleared by deinit");
 
     logger.deinit();
 }
@@ -324,14 +428,41 @@ void test_static_helpers_on_snapshot() {
     expect_equal(warnLogs.front().message, std::string("c"), "Static getLogs should preserve message order");
 }
 
+void test_destructor_calls_deinit_and_flushes_pending_logs() {
+    test_support::resetMillis();
+
+    std::vector<Log> flushedLogs;
+    {
+        ESPLogger logger;
+        LoggerConfig config;
+        config.enableSyncTask = false;
+        config.maxLogInRam = 4;
+        config.consoleLogLevel = LogLevel::Debug;
+
+        if (!logger.init(config)) {
+            fail("ESPLogger failed to initialize");
+        }
+
+        logger.onSync([&flushedLogs](const std::vector<Log> &logs) { flushedLogs = logs; });
+        logger.info("DTOR", "pending");
+    }
+
+    expect_equal(flushedLogs.size(), static_cast<size_t>(1), "Destructor should deinit and flush pending logs");
+    expect_equal(flushedLogs.front().message, std::string("pending"), "Destructor flush should preserve message");
+}
+
 }  // namespace
 
 int main() {
     try {
         test_init_with_default_config();
         test_init_applies_normalized_config();
+        test_deinit_is_safe_before_init();
+        test_deinit_is_idempotent();
+        test_reinit_after_deinit();
         test_stores_logs_up_to_configured_capacity();
         test_sync_callback_receives_buffered_logs();
+        test_deinit_flushes_and_clears_callbacks();
         test_live_callback_receives_logs_immediately();
         test_detach_disables_live_callback();
         test_live_and_sync_callbacks_can_be_used_together();
@@ -339,6 +470,7 @@ int main() {
         test_multiple_logger_instances_operate_independently();
         test_get_logs_by_level();
         test_static_helpers_on_snapshot();
+        test_destructor_calls_deinit_and_flushes_pending_logs();
     } catch (const std::exception &ex) {
         std::cerr << "Test failure: " << ex.what() << '\n';
         return 1;

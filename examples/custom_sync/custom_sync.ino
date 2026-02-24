@@ -22,6 +22,8 @@ static SensorSampler sampler(logger);
 namespace {
 constexpr uint32_t kManualSyncIntervalMS = 5000;
 uint32_t lastSyncMs = 0;
+uint32_t sampleCount = 0;
+bool loggerStopped = false;
 }  // namespace
 
 void persistLogs(const std::vector<Log>& logs) {
@@ -55,11 +57,23 @@ void setup() {
 }
 
 void loop() {
+    if (loggerStopped) {
+        delay(1000);
+        return;
+    }
+
     sampler.logReading();
+    sampleCount++;
 
     if (millis() - lastSyncMs >= kManualSyncIntervalMS) {
         lastSyncMs = millis();
         logger.sync();  // trigger persistence callback immediately
+    }
+
+    if (sampleCount >= 40) {
+        logger.deinit();
+        loggerStopped = true;
+        Serial.println("Logger deinitialized after manual-sync demo");
     }
 
     delay(250);
