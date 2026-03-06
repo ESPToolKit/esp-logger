@@ -13,6 +13,21 @@
 #include <freertos/semphr.h>
 #include <freertos/task.h>
 
+#if defined(__has_include)
+#if __has_include(<ArduinoJson.h>)
+#include <ArduinoJson.h>
+#if defined(ARDUINOJSON_VERSION_MAJOR) && ARDUINOJSON_VERSION_MAJOR >= 7
+#define ESPLOGGER_HAS_ARDUINOJSON_V7 1
+#else
+#define ESPLOGGER_HAS_ARDUINOJSON_V7 0
+#endif
+#else
+#define ESPLOGGER_HAS_ARDUINOJSON_V7 0
+#endif
+#else
+#define ESPLOGGER_HAS_ARDUINOJSON_V7 0
+#endif
+
 #include "esp_logger/logger_allocator.h"
 #include "esp_logger/logger_config.h"
 
@@ -49,6 +64,17 @@ class ESPLogger {
     void info(const char* tag, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
     void warn(const char* tag, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
     void error(const char* tag, const char* fmt, ...) __attribute__((format(printf, 3, 4)));
+#if ESPLOGGER_HAS_ARDUINOJSON_V7
+    void debug(const char* tag, const ArduinoJson::JsonDocument& json);
+    void info(const char* tag, const ArduinoJson::JsonDocument& json);
+    void warn(const char* tag, const ArduinoJson::JsonDocument& json);
+    void error(const char* tag, const ArduinoJson::JsonDocument& json);
+
+    void debug(const char* tag, ArduinoJson::JsonVariantConst json);
+    void info(const char* tag, ArduinoJson::JsonVariantConst json);
+    void warn(const char* tag, ArduinoJson::JsonVariantConst json);
+    void error(const char* tag, ArduinoJson::JsonVariantConst json);
+#endif
 
     std::vector<Log> getAllLogs();
     int getLogCount(LogLevel level);
@@ -63,7 +89,11 @@ class ESPLogger {
 
   private:
     void logInternal(LogLevel level, const char* tag, const char* fmt, va_list args);
+    void logMessage(LogLevel level, const char* tag, std::string message);
     std::string formatMessage(const char* fmt, va_list args);
+#if ESPLOGGER_HAS_ARDUINOJSON_V7
+    std::string serializeJsonMessage(ArduinoJson::JsonVariantConst json) const;
+#endif
     void performSync();
     static void syncTaskThunk(void* arg);
     void syncTaskLoop();

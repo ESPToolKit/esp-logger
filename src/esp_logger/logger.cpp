@@ -287,6 +287,40 @@ void ESPLogger::error(const char *tag, const char *fmt, ...) {
 	va_end(args);
 }
 
+#if ESPLOGGER_HAS_ARDUINOJSON_V7
+void ESPLogger::debug(const char *tag, const ArduinoJson::JsonDocument &json) {
+	logMessage(LogLevel::Debug, tag, serializeJsonMessage(json.as<ArduinoJson::JsonVariantConst>()));
+}
+
+void ESPLogger::info(const char *tag, const ArduinoJson::JsonDocument &json) {
+	logMessage(LogLevel::Info, tag, serializeJsonMessage(json.as<ArduinoJson::JsonVariantConst>()));
+}
+
+void ESPLogger::warn(const char *tag, const ArduinoJson::JsonDocument &json) {
+	logMessage(LogLevel::Warn, tag, serializeJsonMessage(json.as<ArduinoJson::JsonVariantConst>()));
+}
+
+void ESPLogger::error(const char *tag, const ArduinoJson::JsonDocument &json) {
+	logMessage(LogLevel::Error, tag, serializeJsonMessage(json.as<ArduinoJson::JsonVariantConst>()));
+}
+
+void ESPLogger::debug(const char *tag, ArduinoJson::JsonVariantConst json) {
+	logMessage(LogLevel::Debug, tag, serializeJsonMessage(json));
+}
+
+void ESPLogger::info(const char *tag, ArduinoJson::JsonVariantConst json) {
+	logMessage(LogLevel::Info, tag, serializeJsonMessage(json));
+}
+
+void ESPLogger::warn(const char *tag, ArduinoJson::JsonVariantConst json) {
+	logMessage(LogLevel::Warn, tag, serializeJsonMessage(json));
+}
+
+void ESPLogger::error(const char *tag, ArduinoJson::JsonVariantConst json) {
+	logMessage(LogLevel::Error, tag, serializeJsonMessage(json));
+}
+#endif
+
 std::vector<Log> ESPLogger::getAllLogs() {
 	LockGuard guard(_mutex);
 	return std::vector<Log>(_logs.begin(), _logs.end());
@@ -373,13 +407,15 @@ void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va
 	std::string message = formatMessage(fmt, argsForMessage);
 	va_end(argsForMessage);
 
+	logMessage(level, tag, std::move(message));
+}
+
+void ESPLogger::logMessage(LogLevel level, const char *tag, std::string message) {
 	if (message.empty()) {
 		return;
 	}
 
-	const char *normalizedTag = tag != nullptr ? tag : "";
-	uint32_t nowMillis = millis();
-	std::time_t nowUtc = std::time(nullptr);
+	Log entry{level, tag != nullptr ? tag : "", static_cast<uint32_t>(millis()), std::time(nullptr), std::move(message)};
 
 	bool shouldLogToConsole = false;
 	bool shouldInvokeLiveCallback = false;
@@ -398,7 +434,7 @@ void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va
 			_logs.pop_front();
 		}
 
-		_logs.emplace_back(Log{level, normalizedTag, nowMillis, nowUtc, message});
+		_logs.emplace_back(entry);
 
 		if (_liveCallback) {
 			shouldInvokeLiveCallback = true;
@@ -408,7 +444,7 @@ void ESPLogger::logInternal(LogLevel level, const char *tag, const char *fmt, va
 	}
 
 	if (shouldLogToConsole) {
-		logToConsole(level, normalizedTag, nowMillis, nowUtc, message);
+		logToConsole(level, entry.tag.c_str(), entry.millis, entry.timestamp, entry.message);
 	}
 
 	if (shouldInvokeLiveCallback) {
@@ -439,6 +475,29 @@ std::string ESPLogger::formatMessage(const char *fmt, va_list args) {
 
 	return std::string(buffer.data(), static_cast<size_t>(required));
 }
+
+#if ESPLOGGER_HAS_ARDUINOJSON_V7
+std::string ESPLogger::serializeJsonMessage(ArduinoJson::JsonVariantConst json) const {
+	const bool usePrettyJson = _config.usePrettyJson;
+	const size_t required =
+		usePrettyJson ? ArduinoJson::measureJsonPretty(json) : ArduinoJson::measureJson(json);
+
+	if (required == 0) {
+		return {};
+	}
+
+	InternalCharVector buffer(required + 1, '\0', _charAllocator);
+	const size_t written = usePrettyJson
+							   ? ArduinoJson::serializeJsonPretty(json, buffer.data(), buffer.size())
+							   : ArduinoJson::serializeJson(json, buffer.data(), buffer.size());
+
+	if (written == 0) {
+		return {};
+	}
+
+	return std::string(buffer.data(), written);
+}
+#endif
 
 void ESPLogger::performSync() {
 	SyncCallback callback;

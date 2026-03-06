@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 - `ESPLogger::init` now accepts no arguments, defaulting to the baked-in configuration; docs, examples, and tests highlight the zero-config path.
 - Added lightweight live log callbacks via `attach`/`detach`, allowing per-entry streaming while keeping existing `onSync` batch flushing.
 - Added `LoggerConfig::usePSRAMBuffers` and integrated `ESPBufferManager` for logger-owned dynamic buffers with safe fallback to normal heap when PSRAM is unavailable.
+- Added optional ArduinoJson v7+ overloads for `debug`/`info`/`warn`/`error`, plus `LoggerConfig::usePrettyJson` to switch between pretty and compact JSON serialization.
 - Switched sync worker lifecycle to native FreeRTOS task handling (`xTaskCreatePinnedToCore`/`vTaskDelete`).
 
 ### Fixed

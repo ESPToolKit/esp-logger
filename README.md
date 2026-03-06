@@ -9,6 +9,7 @@ A lightweight, configurable logging utility for ESP32 projects. ESPLogger combin
 
 ## Features
 - Familiar `debug`/`info`/`warn`/`error` helpers with `printf` formatting semantics.
+- Optional ArduinoJson v7+ overloads for logging `JsonDocument` and `JsonVariant` payloads directly.
 - Configurable behavior: batching thresholds, FreeRTOS core/stack/priority, and console log level.
 - Optional background sync task (native FreeRTOS task) plus manual `sync()` for deterministic flushes.
 - Optional PSRAM-backed internal buffers via `LoggerConfig::usePSRAMBuffers` with automatic fallback to normal heap.
@@ -34,6 +35,7 @@ void setup() {
     cfg.syncIntervalMS = 5000;
     cfg.maxLogInRam = 100;
     cfg.consoleLogLevel = LogLevel::Info;
+    cfg.usePrettyJson = true;
     cfg.usePSRAMBuffers = true; // Safe on non-PSRAM boards (falls back automatically)
     logger.init(cfg);
 
@@ -54,6 +56,27 @@ void setup() {
 void loop() {
     logger.debug("LOOP", "Loop iteration at %lu ms", static_cast<unsigned long>(millis()));
     delay(1000);
+}
+```
+
+Log ArduinoJson payloads directly when ArduinoJson v7+ is available at compile time:
+
+```cpp
+#include <ArduinoJson.h>
+
+void logJsonPayload() {
+    LoggerConfig cfg;
+    cfg.enableSyncTask = false;
+    cfg.usePrettyJson = false; // Switch to compact output
+    logger.init(cfg);
+
+    JsonDocument doc;
+    doc["hello"] = "world";
+
+    logger.debug("JSON", doc);
+    logger.info("JSON", doc);
+    logger.warn("JSON", doc);
+    logger.error("JSON", doc);
 }
 ```
 
@@ -85,6 +108,7 @@ class SensorModule {
 Example sketches:
 - `examples/basic_usage` – minimal configuration + periodic logging.
 - `examples/custom_sync` – manual syncing with a custom persistence callback.
+- `examples/json_logging` – log ArduinoJson v7 `JsonDocument` and `JsonVariantConst` payloads with pretty and compact output.
 
 ## Console backend
 ESPLogger prints with a minimal `printf` backend by default, producing lines like:
@@ -102,6 +126,7 @@ Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your buil
 - Call `logger.deinit()` during shutdown/reconfiguration so pending buffered logs are flushed and callbacks are detached deterministically.
 - When `enableSyncTask` is `false`, remember to call `logger.sync()` yourself or logs will stay buffered forever.
 - `setLogLevel` only affects console output; all logs remain available inside the RAM buffer until purged.
+- ArduinoJson overloads are enabled only when `ArduinoJson.h` is visible at compile time and `ARDUINOJSON_VERSION_MAJOR >= 7`.
 - Inside `onSync`, the internal buffer has already been cleared—use the static helper overloads that take the `logs` snapshot to count or filter entries.
 - `attach` callbacks run in the caller context of `debug/info/warn/error`; keep handlers fast and non-blocking.
 - The `onSync` callback runs inside the sync task context—avoid blocking operations.
@@ -110,6 +135,7 @@ Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your buil
 - `bool init(const LoggerConfig& cfg = {})` – configure sync cadence, stack size, priorities, and thresholds.
 - `void deinit()` / `bool isInitialized() const` – tear down runtime resources and inspect lifecycle state.
 - `void debug/info/warn/error(const char* tag, const char* fmt, ...)` – emit formatted logs.
+- `void debug/info/warn/error(const char* tag, const JsonDocument& json)` and `void debug/info/warn/error(const char* tag, JsonVariantConst json)` – available when ArduinoJson v7+ is installed and included by the build.
 - `void attach(LiveCallback cb)` / `void detach()` – register or remove a per-entry live callback invoked on every emitted log entry.
 - `void setLogLevel(LogLevel level)` / `LogLevel logLevel() const` – adjust console verbosity at runtime.
 - `void onSync(ESPLogger::SyncCallback cb)` – receive batches of `Log` entries whenever the buffer flushes.
@@ -130,6 +156,7 @@ Prefer the ESP-IDF logging macros? Define `ESPLOGGER_USE_ESP_LOG=1` in your buil
 | `priority` | `1` | FreeRTOS priority for the sync task. |
 | `consoleLogLevel` | `LogLevel::Debug` | Minimum level printed to the console. |
 | `enableSyncTask` | `true` | Disable to opt out of the background task and call `logger.sync()` manually. |
+| `usePrettyJson` | `true` | Use `serializeJsonPretty()` for ArduinoJson payloads; set to `false` to use compact `serializeJson()`. |
 | `usePSRAMBuffers` | `false` | Prefer PSRAM for logger-owned buffers (`_logs`, format temp buffers, sync staging) when available; falls back to normal heap if not. |
 
 Stack sizes are expressed in bytes.
@@ -137,6 +164,7 @@ Stack sizes are expressed in bytes.
 ## Restrictions
 - Built for ESP32 + FreeRTOS (Arduino or ESP-IDF) with C++17 enabled.
 - Uses dynamic allocation for the RAM buffer; size `maxLogInRam` according to your heap budget.
+- ArduinoJson logging is optional; older ArduinoJson versions are ignored and the JSON overloads are not exposed.
 - Console output uses `printf` by default; define `ESPLOGGER_USE_ESP_LOG=1` if you want ESP-IDF log colors/levels managed via menuconfig.
 
 ## Tests
