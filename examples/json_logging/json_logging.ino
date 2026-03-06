@@ -53,7 +53,7 @@ void loop() {
     }
 
     if (sampleIndex == 4) {
-        logger.error("JSON", payload["sample"]);
+        logger.error("JSON", payload["sample"].as<JsonVariantConst>());
     }
 
     sampleIndex++;
