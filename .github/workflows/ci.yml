@@ -59,13 +59,18 @@ jobs:
           for d in examples/*; do
             if [ -d "$d" ]; then
               echo "Building $d on ${{ matrix.board }} via PlatformIO CI"
+              EXTRA_LIB_DEPS=
+              if [ "$(basename "$d")" = "json_logging" ]; then
+                EXTRA_LIB_DEPS='--project-option lib_deps=bblanchon/ArduinoJson@^7.0.0'
+              fi
               # Force C++17 for this project to satisfy library requirements
               pio ci "$d" \
                 --board ${{ matrix.board }} \
                 --lib="." \
                 --project-option "platform=https://github.com/pioarduino/platform-espressif32.git" \
                 --project-option "build_unflags=-std=gnu++11" \
-                --project-option "build_flags=-std=gnu++17"
+                --project-option "build_flags=-std=gnu++17" \
+                ${EXTRA_LIB_DEPS}
             fi
           done
 
@@ -114,8 +119,8 @@ jobs:
         run: |
           set -e
           SKETCHBOOK_DIR="${HOME}/Arduino"
-          mkdir -p "$SKETCHBOOK_DIR/libraries/ESPJsonDB"
-          rsync -a --delete --exclude ".git" ./ "$SKETCHBOOK_DIR/libraries/ESPJsonDB/"
+          mkdir -p "$SKETCHBOOK_DIR/libraries/ESPLogger"
+          rsync -a --delete --exclude ".git" ./ "$SKETCHBOOK_DIR/libraries/ESPLogger/"
 
       - name: Build examples (${{ matrix.board.name }})
         env:
