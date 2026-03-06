@@ -24,6 +24,10 @@
   "platforms": ["espressif32"],
   "dependencies": [
     {
+      "name": "bblanchon/ArduinoJson",
+      "version": "^7.0.0"
+    },
+    {
       "name": "ESPBufferManager",
       "version": "https://github.com/ESPToolKit/esp-buffer-manager.git"
     }

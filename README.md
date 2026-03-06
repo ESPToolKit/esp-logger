@@ -59,7 +59,7 @@ void loop() {
 }
 ```
 
-Log ArduinoJson payloads directly when ArduinoJson v7+ is available at compile time:
+Log ArduinoJson payloads directly when ArduinoJson v7+ is available at compile time. PlatformIO installs it automatically through `library.json`; for other build systems, install ArduinoJson v7+ yourself:
 
 ```cpp
 #include <ArduinoJson.h>
