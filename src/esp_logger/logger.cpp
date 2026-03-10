@@ -40,11 +40,13 @@ class LockGuard {
 constexpr const char *kSyncTaskName = "ESPLoggerSync";
 
 #if ESPLOGGER_USE_ESP_LOG
-static void logWithEsp(LogLevel level,
-					   const char *tag,
-					   uint32_t millisValue,
-					   std::time_t timestamp,
-					   const std::string &message) {
+static void logWithEsp(
+    LogLevel level,
+    const char *tag,
+    uint32_t millisValue,
+    std::time_t timestamp,
+    const std::string &message
+) {
 	const unsigned long millisUnsigned = static_cast<unsigned long>(millisValue);
 	const int64_t timestampValue = static_cast<int64_t>(timestamp);
 
@@ -84,11 +86,13 @@ static void logWithPrintf(LogLevel level, const char *tag, const std::string &me
 	}
 }
 
-static void logToConsole(LogLevel level,
-						 const char *tag,
-						 uint32_t millisValue,
-						 std::time_t timestamp,
-						 const std::string &message) {
+static void logToConsole(
+    LogLevel level,
+    const char *tag,
+    uint32_t millisValue,
+    std::time_t timestamp,
+    const std::string &message
+) {
 #if ESPLOGGER_USE_ESP_LOG
 	logWithEsp(level, tag, millisValue, timestamp, message);
 #else
@@ -166,13 +170,14 @@ bool ESPLogger::init(const LoggerConfig &config) {
 	if (shouldCreateTask) {
 		_running = true;
 		const BaseType_t created = xTaskCreatePinnedToCore(
-			&ESPLogger::syncTaskThunk,
-			kSyncTaskName,
-			_config.stackSize,
-			this,
-			_config.priority,
-			&_syncTask,
-			_config.coreId);
+		    &ESPLogger::syncTaskThunk,
+		    kSyncTaskName,
+		    _config.stackSize,
+		    this,
+		    _config.priority,
+		    &_syncTask,
+		    _config.coreId
+		);
 
 		if (created != pdPASS) {
 			_running = false;
@@ -289,7 +294,11 @@ void ESPLogger::error(const char *tag, const char *fmt, ...) {
 
 #if ESPLOGGER_HAS_ARDUINOJSON_V7
 void ESPLogger::debug(const char *tag, const ArduinoJson::JsonDocument &json) {
-	logMessage(LogLevel::Debug, tag, serializeJsonMessage(json.as<ArduinoJson::JsonVariantConst>()));
+	logMessage(
+	    LogLevel::Debug,
+	    tag,
+	    serializeJsonMessage(json.as<ArduinoJson::JsonVariantConst>())
+	);
 }
 
 void ESPLogger::info(const char *tag, const ArduinoJson::JsonDocument &json) {
@@ -301,7 +310,11 @@ void ESPLogger::warn(const char *tag, const ArduinoJson::JsonDocument &json) {
 }
 
 void ESPLogger::error(const char *tag, const ArduinoJson::JsonDocument &json) {
-	logMessage(LogLevel::Error, tag, serializeJsonMessage(json.as<ArduinoJson::JsonVariantConst>()));
+	logMessage(
+	    LogLevel::Error,
+	    tag,
+	    serializeJsonMessage(json.as<ArduinoJson::JsonVariantConst>())
+	);
 }
 
 void ESPLogger::debug(const char *tag, ArduinoJson::JsonVariantConst json) {
@@ -337,9 +350,12 @@ std::vector<Log> ESPLogger::getLogs(LogLevel level) {
 	LockGuard guard(_mutex);
 	std::vector<Log> matches;
 	matches.reserve(_logs.size());
-	std::copy_if(_logs.begin(), _logs.end(), std::back_inserter(matches), [level](const Log &entry) {
-		return entry.level == level;
-	});
+	std::copy_if(
+	    _logs.begin(),
+	    _logs.end(),
+	    std::back_inserter(matches),
+	    [level](const Log &entry) { return entry.level == level; }
+	);
 	return matches;
 }
 
@@ -415,7 +431,13 @@ void ESPLogger::logMessage(LogLevel level, const char *tag, std::string message)
 		return;
 	}
 
-	Log entry{level, tag != nullptr ? tag : "", static_cast<uint32_t>(millis()), std::time(nullptr), std::move(message)};
+	Log entry{
+	    level,
+	    tag != nullptr ? tag : "",
+	    static_cast<uint32_t>(millis()),
+	    std::time(nullptr),
+	    std::move(message)
+	};
 
 	bool shouldLogToConsole = false;
 	bool shouldInvokeLiveCallback = false;
@@ -480,16 +502,16 @@ std::string ESPLogger::formatMessage(const char *fmt, va_list args) {
 std::string ESPLogger::serializeJsonMessage(ArduinoJson::JsonVariantConst json) const {
 	const bool usePrettyJson = _config.usePrettyJson;
 	const size_t required =
-		usePrettyJson ? ArduinoJson::measureJsonPretty(json) : ArduinoJson::measureJson(json);
+	    usePrettyJson ? ArduinoJson::measureJsonPretty(json) : ArduinoJson::measureJson(json);
 
 	if (required == 0) {
 		return {};
 	}
 
 	InternalCharVector buffer(required + 1, '\0', _charAllocator);
-	const size_t written = usePrettyJson
-							   ? ArduinoJson::serializeJsonPretty(json, buffer.data(), buffer.size())
-							   : ArduinoJson::serializeJson(json, buffer.data(), buffer.size());
+	const size_t written =
+	    usePrettyJson ? ArduinoJson::serializeJsonPretty(json, buffer.data(), buffer.size())
+	                  : ArduinoJson::serializeJson(json, buffer.data(), buffer.size());
 
 	if (written == 0) {
 		return {};

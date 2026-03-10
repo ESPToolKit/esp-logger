@@ -12,473 +12,584 @@
 namespace {
 
 [[noreturn]] void fail(const std::string &message) {
-    throw std::runtime_error(message);
+	throw std::runtime_error(message);
 }
 
 template <typename T>
 void expect_equal(const T &actual, const T &expected, const std::string &message) {
-    if (!(actual == expected)) {
-        fail(message);
-    }
+	if (!(actual == expected)) {
+		fail(message);
+	}
 }
 
 void expect_true(bool condition, const std::string &message) {
-    if (!condition) {
-        fail(message);
-    }
+	if (!condition) {
+		fail(message);
+	}
 }
 
 void test_init_with_default_config() {
-    ESPLogger logger;
+	ESPLogger logger;
 
-    if (!logger.init()) {
-        fail("ESPLogger failed to initialize with default config");
-    }
+	if (!logger.init()) {
+		fail("ESPLogger failed to initialize with default config");
+	}
 
-    expect_true(logger.isInitialized(), "ESPLogger should be initialized with default config");
-    expect_equal(logger.logLevel(), LogLevel::Debug, "Default console log level should be Debug");
+	expect_true(logger.isInitialized(), "ESPLogger should be initialized with default config");
+	expect_equal(logger.logLevel(), LogLevel::Debug, "Default console log level should be Debug");
 
-    const auto current = logger.currentConfig();
-    expect_true(current.enableSyncTask, "Default config should enable the sync task");
-    expect_equal(current.maxLogInRam, static_cast<size_t>(100), "Default maxLogInRam should be 100");
-    expect_true(current.usePrettyJson, "Default usePrettyJson should be true");
-    expect_true(!current.usePSRAMBuffers, "Default usePSRAMBuffers should be false");
+	const auto current = logger.currentConfig();
+	expect_true(current.enableSyncTask, "Default config should enable the sync task");
+	expect_equal(
+	    current.maxLogInRam,
+	    static_cast<size_t>(100),
+	    "Default maxLogInRam should be 100"
+	);
+	expect_true(current.usePrettyJson, "Default usePrettyJson should be true");
+	expect_true(!current.usePSRAMBuffers, "Default usePSRAMBuffers should be false");
 
-    logger.deinit();
-    expect_true(!logger.isInitialized(), "ESPLogger should be deinitialized after default init test");
+	logger.deinit();
+	expect_true(
+	    !logger.isInitialized(),
+	    "ESPLogger should be deinitialized after default init test"
+	);
 }
 
 void test_init_applies_normalized_config() {
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 0;
-    config.consoleLogLevel = LogLevel::Warn;
-    config.usePrettyJson = false;
-    config.usePSRAMBuffers = true;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 0;
+	config.consoleLogLevel = LogLevel::Warn;
+	config.usePrettyJson = false;
+	config.usePSRAMBuffers = true;
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to initialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to initialize");
+	}
 
-    expect_true(logger.isInitialized(), "ESPLogger should be initialized");
-    expect_equal(logger.logLevel(), LogLevel::Warn, "Log level should match config");
+	expect_true(logger.isInitialized(), "ESPLogger should be initialized");
+	expect_equal(logger.logLevel(), LogLevel::Warn, "Log level should match config");
 
-    const auto current = logger.currentConfig();
-    expect_equal(current.maxLogInRam, static_cast<size_t>(1), "maxLogInRam should normalize to 1");
-    expect_equal(current.consoleLogLevel, LogLevel::Warn, "consoleLogLevel should remain Warn");
-    expect_true(!current.usePrettyJson, "usePrettyJson should match config");
-    expect_true(current.usePSRAMBuffers, "usePSRAMBuffers should match config");
+	const auto current = logger.currentConfig();
+	expect_equal(current.maxLogInRam, static_cast<size_t>(1), "maxLogInRam should normalize to 1");
+	expect_equal(current.consoleLogLevel, LogLevel::Warn, "consoleLogLevel should remain Warn");
+	expect_true(!current.usePrettyJson, "usePrettyJson should match config");
+	expect_true(current.usePSRAMBuffers, "usePSRAMBuffers should match config");
 
-    logger.deinit();
-    expect_true(!logger.isInitialized(), "ESPLogger should be deinitialized");
+	logger.deinit();
+	expect_true(!logger.isInitialized(), "ESPLogger should be deinitialized");
 }
 
 void test_deinit_is_safe_before_init() {
-    ESPLogger logger;
-    expect_true(!logger.isInitialized(), "Logger should start deinitialized");
+	ESPLogger logger;
+	expect_true(!logger.isInitialized(), "Logger should start deinitialized");
 
-    logger.deinit();
-    expect_true(!logger.isInitialized(), "deinit should be safe before init");
-    expect_true(logger.getAllLogs().empty(), "Pre-init deinit should leave log storage empty");
+	logger.deinit();
+	expect_true(!logger.isInitialized(), "deinit should be safe before init");
+	expect_true(logger.getAllLogs().empty(), "Pre-init deinit should leave log storage empty");
 }
 
 void test_deinit_is_idempotent() {
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 4;
-    config.consoleLogLevel = LogLevel::Debug;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 4;
+	config.consoleLogLevel = LogLevel::Debug;
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to initialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to initialize");
+	}
 
-    logger.info("TEST", "first");
-    logger.deinit();
-    expect_true(!logger.isInitialized(), "Logger should be deinitialized after first deinit");
+	logger.info("TEST", "first");
+	logger.deinit();
+	expect_true(!logger.isInitialized(), "Logger should be deinitialized after first deinit");
 
-    logger.deinit();
-    expect_true(!logger.isInitialized(), "Logger should remain deinitialized after second deinit");
-    expect_true(logger.getAllLogs().empty(), "Idempotent deinit should not leave buffered logs");
+	logger.deinit();
+	expect_true(!logger.isInitialized(), "Logger should remain deinitialized after second deinit");
+	expect_true(logger.getAllLogs().empty(), "Idempotent deinit should not leave buffered logs");
 }
 
 void test_reinit_after_deinit() {
-    ESPLogger logger;
+	ESPLogger logger;
 
-    LoggerConfig firstConfig;
-    firstConfig.enableSyncTask = false;
-    firstConfig.maxLogInRam = 3;
-    firstConfig.consoleLogLevel = LogLevel::Warn;
+	LoggerConfig firstConfig;
+	firstConfig.enableSyncTask = false;
+	firstConfig.maxLogInRam = 3;
+	firstConfig.consoleLogLevel = LogLevel::Warn;
 
-    if (!logger.init(firstConfig)) {
-        fail("First init failed");
-    }
-    logger.warn("REINIT", "one");
-    logger.deinit();
-    expect_true(!logger.isInitialized(), "Logger should be deinitialized before second init");
+	if (!logger.init(firstConfig)) {
+		fail("First init failed");
+	}
+	logger.warn("REINIT", "one");
+	logger.deinit();
+	expect_true(!logger.isInitialized(), "Logger should be deinitialized before second init");
 
-    LoggerConfig secondConfig = firstConfig;
-    secondConfig.maxLogInRam = 8;
-    secondConfig.consoleLogLevel = LogLevel::Error;
+	LoggerConfig secondConfig = firstConfig;
+	secondConfig.maxLogInRam = 8;
+	secondConfig.consoleLogLevel = LogLevel::Error;
 
-    if (!logger.init(secondConfig)) {
-        fail("Second init failed");
-    }
+	if (!logger.init(secondConfig)) {
+		fail("Second init failed");
+	}
 
-    expect_true(logger.isInitialized(), "Logger should reinitialize successfully");
-    expect_true(logger.getAllLogs().empty(), "Reinit should start with an empty log buffer");
-    expect_equal(logger.currentConfig().maxLogInRam, static_cast<size_t>(8), "Second init config should be applied");
-    expect_equal(logger.logLevel(), LogLevel::Error, "Second init log level should be applied");
+	expect_true(logger.isInitialized(), "Logger should reinitialize successfully");
+	expect_true(logger.getAllLogs().empty(), "Reinit should start with an empty log buffer");
+	expect_equal(
+	    logger.currentConfig().maxLogInRam,
+	    static_cast<size_t>(8),
+	    "Second init config should be applied"
+	);
+	expect_equal(logger.logLevel(), LogLevel::Error, "Second init log level should be applied");
 
-    logger.deinit();
+	logger.deinit();
 }
 
 void test_stores_logs_up_to_configured_capacity() {
-    test_support::resetMillis();
+	test_support::resetMillis();
 
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 2;
-    config.consoleLogLevel = LogLevel::Debug;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 2;
+	config.consoleLogLevel = LogLevel::Debug;
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to initialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to initialize");
+	}
 
-    logger.debug("TEST", "first %d", 1);
-    logger.info("TEST", "second");
-    logger.warn("TEST", "third");
+	logger.debug("TEST", "first %d", 1);
+	logger.info("TEST", "second");
+	logger.warn("TEST", "third");
 
-    const auto logs = logger.getAllLogs();
-    expect_equal(logs.size(), static_cast<size_t>(2), "Should keep only the most recent logs");
-    expect_equal(logs.front().level, LogLevel::Info, "First log level incorrect");
-    expect_equal(logs.front().message, std::string("second"), "First log message incorrect");
-    expect_equal(logs.back().level, LogLevel::Warn, "Last log level incorrect");
-    expect_equal(logs.back().message, std::string("third"), "Last log message incorrect");
+	const auto logs = logger.getAllLogs();
+	expect_equal(logs.size(), static_cast<size_t>(2), "Should keep only the most recent logs");
+	expect_equal(logs.front().level, LogLevel::Info, "First log level incorrect");
+	expect_equal(logs.front().message, std::string("second"), "First log message incorrect");
+	expect_equal(logs.back().level, LogLevel::Warn, "Last log level incorrect");
+	expect_equal(logs.back().message, std::string("third"), "Last log message incorrect");
 
-    const auto last = logger.getLastLogs(1);
-    expect_equal(last.size(), static_cast<size_t>(1), "getLastLogs should honor requested count");
-    expect_equal(last.front().message, std::string("third"), "getLastLogs should return most recent message");
+	const auto last = logger.getLastLogs(1);
+	expect_equal(last.size(), static_cast<size_t>(1), "getLastLogs should honor requested count");
+	expect_equal(
+	    last.front().message,
+	    std::string("third"),
+	    "getLastLogs should return most recent message"
+	);
 
-    logger.deinit();
+	logger.deinit();
 }
 
 void test_sync_callback_receives_buffered_logs() {
-    test_support::resetMillis();
+	test_support::resetMillis();
 
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 10;
-    config.consoleLogLevel = LogLevel::Debug;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 10;
+	config.consoleLogLevel = LogLevel::Debug;
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to initialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to initialize");
+	}
 
-    std::vector<Log> received;
-    logger.onSync([&received](const std::vector<Log> &logs) { received = logs; });
+	std::vector<Log> received;
+	logger.onSync([&received](const std::vector<Log> &logs) { received = logs; });
 
-    logger.info("TAG", "message %d", 1);
-    logger.error("TAG", "message %d", 2);
+	logger.info("TAG", "message %d", 1);
+	logger.error("TAG", "message %d", 2);
 
-    expect_true(received.empty(), "Callback should not run until sync is triggered");
+	expect_true(received.empty(), "Callback should not run until sync is triggered");
 
-    logger.sync();
+	logger.sync();
 
-    expect_equal(received.size(), static_cast<size_t>(2), "Sync should flush buffered logs");
-    expect_true(logger.getAllLogs().empty(), "Logs should be cleared after sync");
-    expect_equal(received.front().level, LogLevel::Info, "First flushed level incorrect");
-    expect_equal(received.front().message, std::string("message 1"), "First flushed message incorrect");
-    expect_equal(received.back().level, LogLevel::Error, "Second flushed level incorrect");
-    expect_equal(received.back().message, std::string("message 2"), "Second flushed message incorrect");
+	expect_equal(received.size(), static_cast<size_t>(2), "Sync should flush buffered logs");
+	expect_true(logger.getAllLogs().empty(), "Logs should be cleared after sync");
+	expect_equal(received.front().level, LogLevel::Info, "First flushed level incorrect");
+	expect_equal(
+	    received.front().message,
+	    std::string("message 1"),
+	    "First flushed message incorrect"
+	);
+	expect_equal(received.back().level, LogLevel::Error, "Second flushed level incorrect");
+	expect_equal(
+	    received.back().message,
+	    std::string("message 2"),
+	    "Second flushed message incorrect"
+	);
 
-    logger.deinit();
+	logger.deinit();
 }
 
 void test_deinit_flushes_and_clears_callbacks() {
-    test_support::resetMillis();
+	test_support::resetMillis();
 
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 8;
-    config.consoleLogLevel = LogLevel::Debug;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 8;
+	config.consoleLogLevel = LogLevel::Debug;
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to initialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to initialize");
+	}
 
-    size_t liveCallCount = 0;
-    size_t syncCallCount = 0;
-    size_t lastSyncedBatchSize = 0;
+	size_t liveCallCount = 0;
+	size_t syncCallCount = 0;
+	size_t lastSyncedBatchSize = 0;
 
-    logger.attach([&liveCallCount](const Log &) { ++liveCallCount; });
-    logger.onSync([&syncCallCount, &lastSyncedBatchSize](const std::vector<Log> &logs) {
-        ++syncCallCount;
-        lastSyncedBatchSize = logs.size();
-    });
+	logger.attach([&liveCallCount](const Log &) { ++liveCallCount; });
+	logger.onSync([&syncCallCount, &lastSyncedBatchSize](const std::vector<Log> &logs) {
+		++syncCallCount;
+		lastSyncedBatchSize = logs.size();
+	});
 
-    logger.info("TEARDOWN", "before deinit");
-    expect_equal(liveCallCount, static_cast<size_t>(1), "Live callback should run before deinit");
+	logger.info("TEARDOWN", "before deinit");
+	expect_equal(liveCallCount, static_cast<size_t>(1), "Live callback should run before deinit");
 
-    logger.deinit();
-    expect_true(!logger.isInitialized(), "Logger should be deinitialized");
-    expect_equal(syncCallCount, static_cast<size_t>(1), "deinit should flush buffered logs exactly once");
-    expect_equal(lastSyncedBatchSize, static_cast<size_t>(1), "deinit flush should include pending log entries");
+	logger.deinit();
+	expect_true(!logger.isInitialized(), "Logger should be deinitialized");
+	expect_equal(
+	    syncCallCount,
+	    static_cast<size_t>(1),
+	    "deinit should flush buffered logs exactly once"
+	);
+	expect_equal(
+	    lastSyncedBatchSize,
+	    static_cast<size_t>(1),
+	    "deinit flush should include pending log entries"
+	);
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to reinitialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to reinitialize");
+	}
 
-    logger.info("TEARDOWN", "after deinit");
-    logger.sync();
+	logger.info("TEARDOWN", "after deinit");
+	logger.sync();
 
-    expect_equal(liveCallCount, static_cast<size_t>(1), "Live callback should be cleared by deinit");
-    expect_equal(syncCallCount, static_cast<size_t>(1), "Sync callback should be cleared by deinit");
+	expect_equal(
+	    liveCallCount,
+	    static_cast<size_t>(1),
+	    "Live callback should be cleared by deinit"
+	);
+	expect_equal(
+	    syncCallCount,
+	    static_cast<size_t>(1),
+	    "Sync callback should be cleared by deinit"
+	);
 
-    logger.deinit();
+	logger.deinit();
 }
 
 void test_live_callback_receives_logs_immediately() {
-    test_support::resetMillis();
+	test_support::resetMillis();
 
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 10;
-    config.consoleLogLevel = LogLevel::Error;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 10;
+	config.consoleLogLevel = LogLevel::Error;
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to initialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to initialize");
+	}
 
-    std::vector<Log> liveLogs;
-    logger.attach([&liveLogs](const Log &entry) { liveLogs.push_back(entry); });
+	std::vector<Log> liveLogs;
+	logger.attach([&liveLogs](const Log &entry) { liveLogs.push_back(entry); });
 
-    logger.info("LIVE", "first %d", 1);
-    logger.warn("LIVE", "second %d", 2);
+	logger.info("LIVE", "first %d", 1);
+	logger.warn("LIVE", "second %d", 2);
 
-    expect_equal(liveLogs.size(), static_cast<size_t>(2), "Live callback should run on every log call");
-    expect_equal(liveLogs.front().level, LogLevel::Info, "Live callback first level mismatch");
-    expect_equal(liveLogs.front().tag, std::string("LIVE"), "Live callback first tag mismatch");
-    expect_equal(liveLogs.front().message, std::string("first 1"), "Live callback first message mismatch");
-    expect_equal(liveLogs.back().level, LogLevel::Warn, "Live callback second level mismatch");
-    expect_equal(liveLogs.back().message, std::string("second 2"), "Live callback second message mismatch");
-    expect_equal(logger.getAllLogs().size(), static_cast<size_t>(2), "Live callback should not affect RAM log buffering");
+	expect_equal(
+	    liveLogs.size(),
+	    static_cast<size_t>(2),
+	    "Live callback should run on every log call"
+	);
+	expect_equal(liveLogs.front().level, LogLevel::Info, "Live callback first level mismatch");
+	expect_equal(liveLogs.front().tag, std::string("LIVE"), "Live callback first tag mismatch");
+	expect_equal(
+	    liveLogs.front().message,
+	    std::string("first 1"),
+	    "Live callback first message mismatch"
+	);
+	expect_equal(liveLogs.back().level, LogLevel::Warn, "Live callback second level mismatch");
+	expect_equal(
+	    liveLogs.back().message,
+	    std::string("second 2"),
+	    "Live callback second message mismatch"
+	);
+	expect_equal(
+	    logger.getAllLogs().size(),
+	    static_cast<size_t>(2),
+	    "Live callback should not affect RAM log buffering"
+	);
 
-    logger.deinit();
+	logger.deinit();
 }
 
 void test_detach_disables_live_callback() {
-    test_support::resetMillis();
+	test_support::resetMillis();
 
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 10;
-    config.consoleLogLevel = LogLevel::Debug;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 10;
+	config.consoleLogLevel = LogLevel::Debug;
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to initialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to initialize");
+	}
 
-    size_t callCount = 0;
-    logger.attach([&callCount](const Log &) { ++callCount; });
-    logger.info("DETACH", "before");
-    logger.detach();
-    logger.info("DETACH", "after");
+	size_t callCount = 0;
+	logger.attach([&callCount](const Log &) { ++callCount; });
+	logger.info("DETACH", "before");
+	logger.detach();
+	logger.info("DETACH", "after");
 
-    expect_equal(callCount, static_cast<size_t>(1), "detach should stop live callback notifications");
+	expect_equal(
+	    callCount,
+	    static_cast<size_t>(1),
+	    "detach should stop live callback notifications"
+	);
 
-    logger.deinit();
+	logger.deinit();
 }
 
 void test_live_and_sync_callbacks_can_be_used_together() {
-    test_support::resetMillis();
+	test_support::resetMillis();
 
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 10;
-    config.consoleLogLevel = LogLevel::Debug;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 10;
+	config.consoleLogLevel = LogLevel::Debug;
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to initialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to initialize");
+	}
 
-    std::vector<Log> liveLogs;
-    std::vector<Log> syncedLogs;
+	std::vector<Log> liveLogs;
+	std::vector<Log> syncedLogs;
 
-    logger.attach([&liveLogs](const Log &entry) { liveLogs.push_back(entry); });
-    logger.onSync([&syncedLogs](const std::vector<Log> &logs) { syncedLogs = logs; });
+	logger.attach([&liveLogs](const Log &entry) { liveLogs.push_back(entry); });
+	logger.onSync([&syncedLogs](const std::vector<Log> &logs) { syncedLogs = logs; });
 
-    logger.debug("COEXIST", "a");
-    logger.error("COEXIST", "b");
+	logger.debug("COEXIST", "a");
+	logger.error("COEXIST", "b");
 
-    expect_equal(liveLogs.size(), static_cast<size_t>(2), "Live callback should observe both entries");
-    expect_true(syncedLogs.empty(), "Sync callback should not run until sync() is called");
+	expect_equal(
+	    liveLogs.size(),
+	    static_cast<size_t>(2),
+	    "Live callback should observe both entries"
+	);
+	expect_true(syncedLogs.empty(), "Sync callback should not run until sync() is called");
 
-    logger.sync();
+	logger.sync();
 
-    expect_equal(syncedLogs.size(), static_cast<size_t>(2), "Sync callback should still receive buffered entries");
-    expect_equal(syncedLogs.front().message, std::string("a"), "First synced message mismatch");
-    expect_equal(syncedLogs.back().message, std::string("b"), "Second synced message mismatch");
+	expect_equal(
+	    syncedLogs.size(),
+	    static_cast<size_t>(2),
+	    "Sync callback should still receive buffered entries"
+	);
+	expect_equal(syncedLogs.front().message, std::string("a"), "First synced message mismatch");
+	expect_equal(syncedLogs.back().message, std::string("b"), "Second synced message mismatch");
 
-    logger.deinit();
+	logger.deinit();
 }
 
 void test_set_log_level_updates_config() {
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 5;
-    config.consoleLogLevel = LogLevel::Debug;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 5;
+	config.consoleLogLevel = LogLevel::Debug;
 
-    if (!logger.init(config)) {
-        fail("ESPLogger failed to initialize");
-    }
+	if (!logger.init(config)) {
+		fail("ESPLogger failed to initialize");
+	}
 
-    logger.setLogLevel(LogLevel::Error);
+	logger.setLogLevel(LogLevel::Error);
 
-    expect_equal(logger.logLevel(), LogLevel::Error, "Log level should update");
-    expect_equal(logger.currentConfig().consoleLogLevel, LogLevel::Error, "Config should reflect new console log level");
+	expect_equal(logger.logLevel(), LogLevel::Error, "Log level should update");
+	expect_equal(
+	    logger.currentConfig().consoleLogLevel,
+	    LogLevel::Error,
+	    "Config should reflect new console log level"
+	);
 
-    logger.deinit();
+	logger.deinit();
 }
 
 void test_multiple_logger_instances_operate_independently() {
-    test_support::resetMillis();
+	test_support::resetMillis();
 
-    ESPLogger first;
-    ESPLogger second;
+	ESPLogger first;
+	ESPLogger second;
 
-    LoggerConfig configA;
-    configA.enableSyncTask = false;
-    configA.maxLogInRam = 3;
-    configA.consoleLogLevel = LogLevel::Debug;
+	LoggerConfig configA;
+	configA.enableSyncTask = false;
+	configA.maxLogInRam = 3;
+	configA.consoleLogLevel = LogLevel::Debug;
 
-    LoggerConfig configB = configA;
-    configB.maxLogInRam = 5;
+	LoggerConfig configB = configA;
+	configB.maxLogInRam = 5;
 
-    if (!first.init(configA) || !second.init(configB)) {
-        fail("Failed to initialize independent loggers");
-    }
+	if (!first.init(configA) || !second.init(configB)) {
+		fail("Failed to initialize independent loggers");
+	}
 
-    first.info("FIRST", "one");
-    second.warn("SECOND", "alpha");
-    first.error("FIRST", "two");
-    second.debug("SECOND", "beta");
+	first.info("FIRST", "one");
+	second.warn("SECOND", "alpha");
+	first.error("FIRST", "two");
+	second.debug("SECOND", "beta");
 
-    const auto firstLogs = first.getAllLogs();
-    const auto secondLogs = second.getAllLogs();
+	const auto firstLogs = first.getAllLogs();
+	const auto secondLogs = second.getAllLogs();
 
-    expect_equal(firstLogs.size(), static_cast<size_t>(2), "First logger should keep its own entries");
-    expect_equal(firstLogs.front().tag, std::string("FIRST"), "First logger tag mismatch");
-    expect_equal(secondLogs.size(), static_cast<size_t>(2), "Second logger should keep its own entries");
-    expect_equal(secondLogs.front().tag, std::string("SECOND"), "Second logger tag mismatch");
+	expect_equal(
+	    firstLogs.size(),
+	    static_cast<size_t>(2),
+	    "First logger should keep its own entries"
+	);
+	expect_equal(firstLogs.front().tag, std::string("FIRST"), "First logger tag mismatch");
+	expect_equal(
+	    secondLogs.size(),
+	    static_cast<size_t>(2),
+	    "Second logger should keep its own entries"
+	);
+	expect_equal(secondLogs.front().tag, std::string("SECOND"), "Second logger tag mismatch");
 
-    first.deinit();
-    second.deinit();
+	first.deinit();
+	second.deinit();
 }
 
 void test_get_logs_by_level() {
-    test_support::resetMillis();
+	test_support::resetMillis();
 
-    ESPLogger logger;
-    LoggerConfig config;
-    config.enableSyncTask = false;
-    config.maxLogInRam = 5;
-    config.consoleLogLevel = LogLevel::Debug;
+	ESPLogger logger;
+	LoggerConfig config;
+	config.enableSyncTask = false;
+	config.maxLogInRam = 5;
+	config.consoleLogLevel = LogLevel::Debug;
 
-    if (!logger.init(config)) {
-        fail("Failed to initialize logger");
-    }
+	if (!logger.init(config)) {
+		fail("Failed to initialize logger");
+	}
 
-    logger.debug("TAG", "message a");
-    logger.info("TAG", "message b");
-    logger.warn("TAG", "message c");
-    logger.info("TAG", "message d");
+	logger.debug("TAG", "message a");
+	logger.info("TAG", "message b");
+	logger.warn("TAG", "message c");
+	logger.info("TAG", "message d");
 
-    expect_equal(logger.getLogCount(LogLevel::Info), 2, "getLogCount should count matching levels only");
-    expect_equal(logger.getLogCount(LogLevel::Error), 0, "getLogCount should return zero when no logs match");
+	expect_equal(
+	    logger.getLogCount(LogLevel::Info),
+	    2,
+	    "getLogCount should count matching levels only"
+	);
+	expect_equal(
+	    logger.getLogCount(LogLevel::Error),
+	    0,
+	    "getLogCount should return zero when no logs match"
+	);
 
-    const auto infoLogs = logger.getLogs(LogLevel::Info);
-    expect_equal(infoLogs.size(), static_cast<size_t>(2), "getLogs should filter by level");
-    expect_equal(infoLogs.front().message, std::string("message b"), "First filtered log mismatch");
-    expect_equal(infoLogs.back().message, std::string("message d"), "Second filtered log mismatch");
+	const auto infoLogs = logger.getLogs(LogLevel::Info);
+	expect_equal(infoLogs.size(), static_cast<size_t>(2), "getLogs should filter by level");
+	expect_equal(infoLogs.front().message, std::string("message b"), "First filtered log mismatch");
+	expect_equal(infoLogs.back().message, std::string("message d"), "Second filtered log mismatch");
 
-    expect_equal(logger.getAllLogs().size(), static_cast<size_t>(4), "getLogs should not mutate stored entries");
+	expect_equal(
+	    logger.getAllLogs().size(),
+	    static_cast<size_t>(4),
+	    "getLogs should not mutate stored entries"
+	);
 
-    logger.deinit();
+	logger.deinit();
 }
 
 void test_static_helpers_on_snapshot() {
-    std::vector<Log> snapshot = {
-        {LogLevel::Debug, "TAG", 1, 1, "a"},
-        {LogLevel::Info, "TAG", 2, 2, "b"},
-        {LogLevel::Warn, "TAG", 3, 3, "c"},
-        {LogLevel::Info, "TAG", 4, 4, "d"},
-    };
+	std::vector<Log> snapshot = {
+	    {LogLevel::Debug, "TAG", 1, 1, "a"},
+	    {LogLevel::Info, "TAG", 2, 2, "b"},
+	    {LogLevel::Warn, "TAG", 3, 3, "c"},
+	    {LogLevel::Info, "TAG", 4, 4, "d"},
+	};
 
-    expect_equal(ESPLogger::getLogCount(snapshot, LogLevel::Info), 2, "Static getLogCount should work on snapshots");
-    expect_equal(ESPLogger::getLogCount(snapshot, LogLevel::Error), 0, "Static getLogCount should return zero if no match");
+	expect_equal(
+	    ESPLogger::getLogCount(snapshot, LogLevel::Info),
+	    2,
+	    "Static getLogCount should work on snapshots"
+	);
+	expect_equal(
+	    ESPLogger::getLogCount(snapshot, LogLevel::Error),
+	    0,
+	    "Static getLogCount should return zero if no match"
+	);
 
-    const auto warnLogs = ESPLogger::getLogs(snapshot, LogLevel::Warn);
-    expect_equal(warnLogs.size(), static_cast<size_t>(1), "Static getLogs should filter snapshots");
-    expect_equal(warnLogs.front().message, std::string("c"), "Static getLogs should preserve message order");
+	const auto warnLogs = ESPLogger::getLogs(snapshot, LogLevel::Warn);
+	expect_equal(warnLogs.size(), static_cast<size_t>(1), "Static getLogs should filter snapshots");
+	expect_equal(
+	    warnLogs.front().message,
+	    std::string("c"),
+	    "Static getLogs should preserve message order"
+	);
 }
 
 void test_destructor_calls_deinit_and_flushes_pending_logs() {
-    test_support::resetMillis();
+	test_support::resetMillis();
 
-    std::vector<Log> flushedLogs;
-    {
-        ESPLogger logger;
-        LoggerConfig config;
-        config.enableSyncTask = false;
-        config.maxLogInRam = 4;
-        config.consoleLogLevel = LogLevel::Debug;
+	std::vector<Log> flushedLogs;
+	{
+		ESPLogger logger;
+		LoggerConfig config;
+		config.enableSyncTask = false;
+		config.maxLogInRam = 4;
+		config.consoleLogLevel = LogLevel::Debug;
 
-        if (!logger.init(config)) {
-            fail("ESPLogger failed to initialize");
-        }
+		if (!logger.init(config)) {
+			fail("ESPLogger failed to initialize");
+		}
 
-        logger.onSync([&flushedLogs](const std::vector<Log> &logs) { flushedLogs = logs; });
-        logger.info("DTOR", "pending");
-    }
+		logger.onSync([&flushedLogs](const std::vector<Log> &logs) { flushedLogs = logs; });
+		logger.info("DTOR", "pending");
+	}
 
-    expect_equal(flushedLogs.size(), static_cast<size_t>(1), "Destructor should deinit and flush pending logs");
-    expect_equal(flushedLogs.front().message, std::string("pending"), "Destructor flush should preserve message");
+	expect_equal(
+	    flushedLogs.size(),
+	    static_cast<size_t>(1),
+	    "Destructor should deinit and flush pending logs"
+	);
+	expect_equal(
+	    flushedLogs.front().message,
+	    std::string("pending"),
+	    "Destructor flush should preserve message"
+	);
 }
 
-}  // namespace
+} // namespace
 
 int main() {
-    try {
-        test_init_with_default_config();
-        test_init_applies_normalized_config();
-        test_deinit_is_safe_before_init();
-        test_deinit_is_idempotent();
-        test_reinit_after_deinit();
-        test_stores_logs_up_to_configured_capacity();
-        test_sync_callback_receives_buffered_logs();
-        test_deinit_flushes_and_clears_callbacks();
-        test_live_callback_receives_logs_immediately();
-        test_detach_disables_live_callback();
-        test_live_and_sync_callbacks_can_be_used_together();
-        test_set_log_level_updates_config();
-        test_multiple_logger_instances_operate_independently();
-        test_get_logs_by_level();
-        test_static_helpers_on_snapshot();
-        test_destructor_calls_deinit_and_flushes_pending_logs();
-    } catch (const std::exception &ex) {
-        std::cerr << "Test failure: " << ex.what() << '\n';
-        return 1;
-    }
+	try {
+		test_init_with_default_config();
+		test_init_applies_normalized_config();
+		test_deinit_is_safe_before_init();
+		test_deinit_is_idempotent();
+		test_reinit_after_deinit();
+		test_stores_logs_up_to_configured_capacity();
+		test_sync_callback_receives_buffered_logs();
+		test_deinit_flushes_and_clears_callbacks();
+		test_live_callback_receives_logs_immediately();
+		test_detach_disables_live_callback();
+		test_live_and_sync_callbacks_can_be_used_together();
+		test_set_log_level_updates_config();
+		test_multiple_logger_instances_operate_independently();
+		test_get_logs_by_level();
+		test_static_helpers_on_snapshot();
+		test_destructor_calls_deinit_and_flushes_pending_logs();
+	} catch (const std::exception &ex) {
+		std::cerr << "Test failure: " << ex.what() << '\n';
+		return 1;
+	}
 
-    std::cout << "All tests passed\n";
-    return 0;
+	std::cout << "All tests passed\n";
+	return 0;
 }
