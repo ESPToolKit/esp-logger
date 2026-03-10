@@ -5,16 +5,17 @@
 ESPLogger logger;
 
 class SensorSampler {
-   public:
-    explicit SensorSampler(ESPLogger& logger) : _logger(logger) {}
+  public:
+	explicit SensorSampler(ESPLogger &logger) : _logger(logger) {
+	}
 
-    void logReading() {
-        const float reading = analogRead(A0) / 1023.0f;
-        _logger.debug("DATA", "Sensor reading: %0.2f", reading);
-    }
+	void logReading() {
+		const float reading = analogRead(A0) / 1023.0f;
+		_logger.debug("DATA", "Sensor reading: %0.2f", reading);
+	}
 
-   private:
-    ESPLogger& _logger;
+  private:
+	ESPLogger &_logger;
 };
 
 static SensorSampler sampler(logger);
@@ -24,57 +25,59 @@ constexpr uint32_t kManualSyncIntervalMS = 5000;
 uint32_t lastSyncMs = 0;
 uint32_t sampleCount = 0;
 bool loggerStopped = false;
-}  // namespace
+} // namespace
 
-void persistLogs(const std::vector<Log>& logs) {
-    Serial.printf("Persisting %u buffered entries\n", static_cast<unsigned>(logs.size()));
-    for (const auto& entry : logs) {
-        Serial.printf("  [%u][%ld][%s] %s\n",
-                      static_cast<unsigned>(entry.millis),
-                      static_cast<long>(entry.timestamp),
-                      entry.tag.c_str(),
-                      entry.message.c_str());
-    }
+void persistLogs(const std::vector<Log> &logs) {
+	Serial.printf("Persisting %u buffered entries\n", static_cast<unsigned>(logs.size()));
+	for (const auto &entry : logs) {
+		Serial.printf(
+		    "  [%u][%ld][%s] %s\n",
+		    static_cast<unsigned>(entry.millis),
+		    static_cast<long>(entry.timestamp),
+		    entry.tag.c_str(),
+		    entry.message.c_str()
+		);
+	}
 }
 
 void setup() {
-    Serial.begin(115200);
+	Serial.begin(115200);
 
-    // Defaults are fine for many cases; call logger.init() without a config to use them.
-    LoggerConfig config;
-    config.enableSyncTask = false;  // we will drive sync manually
-    config.maxLogInRam = 50;
-    config.consoleLogLevel = LogLevel::Debug;
+	// Defaults are fine for many cases; call logger.init() without a config to use them.
+	LoggerConfig config;
+	config.enableSyncTask = false; // we will drive sync manually
+	config.maxLogInRam = 50;
+	config.consoleLogLevel = LogLevel::Debug;
 
-    if (!logger.init(config)) {
-        Serial.println("ESPLogger init failed");
-        return;
-    }
+	if (!logger.init(config)) {
+		Serial.println("ESPLogger init failed");
+		return;
+	}
 
-    logger.onSync(persistLogs);
+	logger.onSync(persistLogs);
 
-    logger.info("SYNC", "Manual sync example ready");
+	logger.info("SYNC", "Manual sync example ready");
 }
 
 void loop() {
-    if (loggerStopped) {
-        delay(1000);
-        return;
-    }
+	if (loggerStopped) {
+		delay(1000);
+		return;
+	}
 
-    sampler.logReading();
-    sampleCount++;
+	sampler.logReading();
+	sampleCount++;
 
-    if (millis() - lastSyncMs >= kManualSyncIntervalMS) {
-        lastSyncMs = millis();
-        logger.sync();  // trigger persistence callback immediately
-    }
+	if (millis() - lastSyncMs >= kManualSyncIntervalMS) {
+		lastSyncMs = millis();
+		logger.sync(); // trigger persistence callback immediately
+	}
 
-    if (sampleCount >= 40) {
-        logger.deinit();
-        loggerStopped = true;
-        Serial.println("Logger deinitialized after manual-sync demo");
-    }
+	if (sampleCount >= 40) {
+		logger.deinit();
+		loggerStopped = true;
+		Serial.println("Logger deinitialized after manual-sync demo");
+	}
 
-    delay(250);
+	delay(250);
 }
